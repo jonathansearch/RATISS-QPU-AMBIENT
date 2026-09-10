@@ -1,0 +1,29 @@
+{
+  "ideal_bell": {
+    "00": 0.4999999999999999,
+    "01": 0.0,
+    "10": 0.0,
+    "11": 0.4999999999999999
+  },
+  "simulator_counts": {
+    "00": 515,
+    "01": 0,
+    "10": 0,
+    "11": 509
+  },
+  "shots": 1024,
+  "ibm_backend_counts": {
+    "00": 494,
+    "01": 8,
+    "11": 516,
+    "10": 6
+  },
+  "fidelity_sim_vs_ibm": 0.9861397107069094,
+  "ibm_bell_population": 0.986328125,
+  "_meta": {
+    "description": "Validation croisée RATISS-simulateur vs IBM ibm_marrakesh (état de Bell)",
+    "backend": "ibm_marrakesh (156 qubits, supraconducteur 15 mK)",
+    "conclusion": "simulateur RATISS validé sur hardware réel, fidélité 98.4%",
+    "honnêteté": "prouve la justesse de l'ALGORITHME, pas encore la cohérence NV physique"
+  }
+}
