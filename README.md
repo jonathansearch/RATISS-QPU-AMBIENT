@@ -51,10 +51,53 @@
 > Toutes les figures sont générées par le code (`scripts/generate_figures.py`) —
 > des données de la vraie physique simulée, pas des décorations.
 
-## 🌌 Vue 3D interactive — le banc NV assemblé
+## 🖼️ Le banc NV assemblé — vue 3D
 
-**[▶ Ouvrir la vue 3D](https://jonathansearch.github.io/RATISS-QPU-AMBIENT/docs/visualisation-3d.html)** · fichier : [`docs/visualisation-3d.html`](docs/visualisation-3d.html)
-Rotation à un doigt, zoom à deux doigts. Three.js chargé depuis unpkg (connexion requise). Illustration, pas une mesure.
+<p align="center">
+  <img src="docs/images/pcb-nv-3d.png"
+       alt="Banc de mesure NV assemblé : table optique, laser 532 nm, lame dichroïque, objectif ×50, diamant NV, antenne micro-onde et APD"
+       width="100%"/>
+</p>
+
+<p align="center">
+  <em>Schéma isométrique du banc. 10 éléments repérés, de la source laser
+  au détecteur de photons uniques.</em>
+</p>
+
+**Le trajet du signal**, de gauche à droite :
+
+1. le **laser 532 nm** émet le faisceau vert ;
+2. le **miroir** et le **filtre** le nettoient et le redirigent ;
+3. la **lame dichroïque 550 nm**, inclinée à 45°, réfléchit le vert vers le
+   bas et laisse remonter le rouge — c'est la pièce maîtresse du montage ;
+4. l'**objectif ×50** focalise sur le **diamant NV** et collecte la
+   fluorescence ;
+5. l'**antenne micro-onde** adresse le spin à 2,87 GHz ;
+6. l'**APD** compte les photons rouges un par un.
+
+<details>
+<summary>Vue éclatée — les 10 sous-ensembles</summary>
+
+<p align="center">
+  <img src="docs/images/pcb-nv-3d-eclate.png"
+       alt="Vue éclatée du banc NV : enceinte, antenne micro-onde, diamant, objectif, dichroïque, laser, APD, rack, écran, table optique"
+       width="100%"/>
+</p>
+
+Chaque sous-ensemble est séparé : l'enceinte de protection, l'antenne
+micro-onde, le diamant sur sa platine, l'objectif, la lame dichroïque,
+le laser, l'APD, le rack électronique, l'écran de contrôle et la table
+optique amortie.
+
+</details>
+
+> ⚠️ **Illustration, pas une mesure.** Ce schéma est généré depuis la
+> description du banc (`ASSEMBLY_BENCH.md`). Il montre l'agencement prévu,
+> pas un appareil construit. Le banc réel reste à assembler — voir la
+> feuille de route du `DESIGN.md`.
+
+<sub>▶ [Explorer la vue interactive](https://jonathansearch.github.io/RATISS-QPU-AMBIENT/docs/visualisation-3d.html) — rotation
+et zoom, Three.js chargé depuis unpkg (connexion requise).</sub>
 
 ### ⚛️ Anatomie du qubit (visualisation scientifique)
 ![Anatomie du QPU NV](docs/images/08_qpu_scientifique.png)
@@ -148,6 +191,7 @@ Voir `results/bell_cross_validation.json` et `ratiss_qpu/ibm_validation.py`.
 - `bench/` — banc de mesure NV : séquences de pulses, banc virtuel, analyseur
 - `bench/firmware/` — firmware de pulsation MicroPython (Pico/Arduino)
 - `scripts/generate_figures.py` — régénère toutes les images de la doc
+- `scripts/rendre_pcb.py` — régénère les 3 vues 3D isométriques du README
 - `docs/GUIDE_VISUEL.md` — **le projet en images** ⭐
 - `docs/ARCHITECTURE.md` — comparatif physique rigoureux des 3 architectures
 - `docs/ASSEMBLY_BENCH.md` — plan d'assemblage optique + tests B1–B10
