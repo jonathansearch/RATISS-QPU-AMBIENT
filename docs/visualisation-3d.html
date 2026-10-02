@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RATISS-QPU-AMBIENT — Banc NV assemblé · Vue 3D</title>
+<style>
+  :root{
+    --bg:#05070c; --panel:rgba(11,15,23,.91); --line:rgba(90,200,255,.16);
+    --txt:#e8f1fa; --dim:#7d90a8;
+    --cyan:#22d3ee; --green:#22c55e; --violet:#a855f7; --rose:#f43f5e;
+    --gold:#fbbf24; --red:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(ellipse at 50% -8%,#0a1420,#05070c 60%);
+    color:var(--txt);font:14px/1.6 'Inter',system-ui,-apple-system,sans-serif;
+    overflow:hidden;
+  }
+  #scene{position:fixed;inset:0}
+
+  /* ---------------- Panneau ---------------- */
+  .panel{
+    position:fixed;top:16px;left:16px;width:326px;max-height:calc(100vh - 32px);
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    padding:17px;overflow-y:auto;z-index:10;
+    box-shadow:0 24px 70px rgba(0,0,0,.72);
+    transition:transform .4s cubic-bezier(.22,1,.36,1),opacity .3s;
+  }
+  .panel.hide{transform:translateX(-118%);opacity:0;pointer-events:none}
+  .panel::-webkit-scrollbar{width:6px}
+  .panel::-webkit-scrollbar-thumb{background:rgba(90,200,255,.25);border-radius:3px}
+
+  .eyebrow{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+           color:var(--cyan);font-weight:600}
+  h1{font-size:16px;margin:6px 0 5px;font-weight:700;letter-spacing:-.01em}
+  .sub{font-size:11px;color:var(--dim);margin-bottom:13px;line-height:1.5}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:13px}
+  .st{background:rgba(255,255,255,.035);border:1px solid var(--line);
+      border-radius:8px;padding:6px 4px;text-align:center}
+  .st b{display:block;font-size:11.5px;font-weight:700;color:var(--cyan);
+        font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .st span{font-size:7.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+
+  h2{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+     margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line);font-weight:600}
+
+  .comp{
+    display:flex;align-items:flex-start;gap:9px;padding:6px 8px;border-radius:8px;
+    cursor:pointer;transition:background .2s;border:1px solid transparent;
+  }
+  .comp:hover{background:rgba(255,255,255,.045)}
+  .comp.off{opacity:.3}
+  .comp.on{border-color:rgba(34,211,238,.3);background:rgba(34,211,238,.06)}
+  .sw{width:10px;height:10px;border-radius:3px;flex-shrink:0;margin-top:5px;
+      box-shadow:0 0 8px currentColor}
+  .ct strong{display:block;font-size:11.5px;font-weight:600;margin-bottom:1px}
+  .ct em{font-style:normal;font-size:10px;color:var(--dim);line-height:1.4}
+
+  /* Séquences */
+  .seq{display:flex;gap:4px;margin-bottom:10px}
+  .sq{flex:1;padding:7px 3px;text-align:center;cursor:pointer;font-size:10px;
+      font-weight:600;border-radius:7px;border:1px solid var(--line);
+      background:rgba(255,255,255,.04);color:var(--dim);transition:all .22s}
+  .sq:hover{color:var(--txt);border-color:rgba(34,211,238,.4)}
+  .sq.on{color:#04121a;background:linear-gradient(120deg,var(--cyan),#5eead4);
+         border-color:transparent;font-weight:700}
+
+  .seqinfo{font-size:10.5px;color:var(--dim);line-height:1.55;padding:9px 11px;
+           border-radius:9px;background:rgba(34,211,238,.06);
+           border-left:2px solid var(--cyan);margin-bottom:4px}
+  .seqinfo b{color:var(--cyan)}
+
+  .legend{display:flex;gap:8px;font-size:10.5px;color:var(--dim);padding:3px 0;
+          align-items:baseline}
+  .legend b{color:var(--txt);font-weight:600;min-width:70px;font-size:10px}
+
+  .hint{font-size:10.5px;color:var(--dim);background:rgba(168,85,247,.07);
+        border-left:2px solid var(--violet);padding:8px 10px;border-radius:0 7px 7px 0;
+        margin-top:11px;line-height:1.55}
+  .hint b{color:var(--violet)}
+
+  /* ---------------- Outils ---------------- */
+  .tools{position:fixed;top:16px;right:16px;display:flex;flex-direction:column;gap:7px;z-index:10}
+  .tb{
+    width:38px;height:38px;display:grid;place-items:center;cursor:pointer;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    color:var(--dim);backdrop-filter:blur(14px);transition:all .25s;
+  }
+  .tb:hover{color:var(--cyan);border-color:rgba(34,211,238,.5);transform:scale(1.08)}
+  .tb.on{color:var(--cyan);border-color:var(--cyan);background:rgba(34,211,238,.1)}
+  .tb svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;
+          stroke-linecap:round;stroke-linejoin:round}
+
+  #tip{
+    position:fixed;pointer-events:none;z-index:40;opacity:0;transition:opacity .2s;
+    background:rgba(6,10,18,.96);border:1px solid rgba(34,211,238,.4);border-radius:9px;
+    padding:9px 11px;font-size:11px;max-width:255px;
+    box-shadow:0 12px 34px rgba(0,0,0,.75);
+  }
+  #tip.show{opacity:1}
+  #tip b{display:block;color:var(--cyan);font-size:11.5px;margin-bottom:3px}
+  #tip span{color:var(--dim);line-height:1.45}
+
+  /* ---------------- HUD ---------------- */
+  .hud{
+    position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:15px;z-index:10;
+    background:var(--panel);border:1px solid var(--line);border-radius:99px;
+    padding:8px 20px;backdrop-filter:blur(16px);
+    box-shadow:0 14px 40px rgba(0,0,0,.6);
+  }
+  .hud .g{display:flex;flex-direction:column;gap:1px}
+  .hud .lbl{font-size:7.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  .hud .v{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;
+          color:var(--cyan);white-space:nowrap}
+  .hud .sep{width:1px;height:22px;background:var(--line)}
+  .led{width:7px;height:7px;border-radius:50%;background:var(--green);
+       box-shadow:0 0 8px var(--green);animation:bl 1.6s infinite}
+  @keyframes bl{50%{opacity:.25}}
+
+  #loader{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);
+          z-index:100;transition:opacity .7s;font-size:11.5px;color:var(--dim);
+          letter-spacing:.14em;text-align:center}
+  #loader.done{opacity:0;pointer-events:none}
+  .spin{width:26px;height:26px;border:2px solid rgba(34,211,238,.25);
+        border-top-color:var(--cyan);border-radius:50%;animation:sp .8s linear infinite;
+        margin:0 auto 14px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  @media(max-width:860px){
+    .panel{width:calc(100vw - 24px);left:12px;top:12px;max-height:45vh}
+    .tools{top:auto;bottom:12px;right:12px;flex-direction:row}
+    .hud{bottom:auto;top:calc(45vh + 22px);padding:6px 13px;gap:9px}
+    .hud .v{font-size:11px}
+  }
+</style>
+</head>
+<body>
+
+<div id="loader"><div><div class="spin"></div>ASSEMBLAGE DU BANC NV…</div></div>
+<div id="scene"></div>
+
+<aside class="panel" id="panel">
+  <div class="eyebrow">RATISS-QPU-AMBIENT · Phase 1.5</div>
+  <h1>Banc NV — microscope confocal</h1>
+  <p class="sub">Banc de mesure de centres azote-lacune à température ambiante. Assemblage selon <code>ASSEMBLY_BENCH.md</code>.</p>
+
+  <div class="stats">
+    <div class="st"><b>532</b><span>nm laser</span></div>
+    <div class="st"><b>2.87</b><span>GHz ODMR</span></div>
+    <div class="st"><b>300</b><span>K ambiant</span></div>
+  </div>
+
+  <h2>Séquence de mesure</h2>
+  <div class="seq">
+    <div class="sq on" data-s="ODMR">ODMR</div>
+    <div class="sq" data-s="Rabi">Rabi</div>
+    <div class="sq" data-s="Ramsey">Ramsey</div>
+    <div class="sq" data-s="Hahn">Hahn</div>
+  </div>
+  <div class="seqinfo" id="seqInfo"></div>
+
+  <h2>Éléments du banc</h2>
+  <div id="comps"></div>
+
+  <h2>Chemin optique</h2>
+  <div class="legend"><b>532 nm</b><span>Excitation — vert</span></div>
+  <div class="legend"><b>637–800 nm</b><span>Fluorescence — rouge</span></div>
+  <div class="legend"><b>Vert → diamant</b><span>Réfléchi par la dichroïque</span></div>
+  <div class="legend"><b>Rouge → APD</b><span>Transmis par la dichroïque</span></div>
+
+  <div class="hint">
+    <b>Le moment de vérité :</b> le test <b>B5</b> — voir le dip ODMR à 2,87 GHz.
+    S'il apparaît, le spin NV est adressé optiquement. Tout le reste en découle.
+  </div>
+</aside>
+
+<div class="tools">
+  <button class="tb" id="tPanel" title="Masquer le panneau">
+    <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+  <button class="tb on" id="tRot" title="Rotation automatique">
+    <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+  </button>
+  <button class="tb" id="tExpl" title="Vue éclatée">
+    <svg viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>
+  </button>
+  <button class="tb on" id="tBeam" title="Faisceaux lumineux">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+  </button>
+  <button class="tb" id="tEncl" title="Enceinte de protection">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
+  </button>
+  <button class="tb" id="tReset" title="Réinitialiser">
+    <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/></svg>
+  </button>
+</div>
+
+<div class="hud">
+  <div class="g"><div class="lbl">Séquence</div><div class="v" id="hSeq">ODMR</div></div>
+  <div class="sep"></div>
+  <div class="g"><div class="lbl">Signal APD</div><div class="v" id="hApd">— kcps</div></div>
+  <div class="sep"></div>
+  <div class="g"><div class="lbl">µ-onde</div><div class="v" id="hMw">2.870 GHz</div></div>
+  <div class="sep"></div>
+  <div class="g"><div class="lbl" style="display:flex;align-items:center;gap:5px">
+    <span class="led"></span>Laser</div><div class="v" id="hLaser">ON</div></div>
+</div>
+
+<div id="tip"></div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ============================================================
+   RATISS-QPU-AMBIENT — banc NV assemblé
+   Source : jonathansearch/RATISS-QPU-AMBIENT
+     docs/ASSEMBLY_BENCH.md  (schéma optique + étapes 1-5)
+     DESIGN.md §3-5, §7     (plans, appareil monté, séquences)
+     docs/BOM_BENCH.md      (14 composants)
+     docs/PHYSICS.md        (D = 2.87 GHz, T2/T1)
+   ============================================================ */
+
+const host = document.getElementById('scene');
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.02;
+host.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05070c);
+scene.fog = new THREE.Fog(0x05070c, 34, 78);
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 400);
+camera.position.set(13, 11, 16);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.055;
+controls.minDistance = 5;
+controls.maxDistance = 55;
+controls.maxPolarAngle = Math.PI * 0.495;
+controls.target.set(0, 2.2, 0);
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.45;
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.05).texture;
+
+scene.add(new THREE.HemisphereLight(0xa8d8ff, 0x080c14, 0.5));
+
+const key = new THREE.DirectionalLight(0xffffff, 1.9);
+key.position.set(10, 20, 10);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.near = 1;
+key.shadow.camera.far = 70;
+key.shadow.camera.left = -20;
+key.shadow.camera.right = 20;
+key.shadow.camera.top = 20;
+key.shadow.camera.bottom = -20;
+key.shadow.bias = -0.0009;
+scene.add(key);
+
+const rim = new THREE.DirectionalLight(0x22d3ee, 0.75);
+rim.position.set(-12, 8, -10);
+scene.add(rim);
+
+/* ============================================================
+   MATÉRIAUX
+   ============================================================ */
+const M = {
+  table:   new THREE.MeshStandardMaterial({ color:0x2a2f3a, roughness:.55, metalness:.65 }),
+  hole:    new THREE.MeshStandardMaterial({ color:0x11141c, roughness:.9, metalness:.2 }),
+  post:    new THREE.MeshStandardMaterial({ color:0x9aa4b2, roughness:.3, metalness:.95 }),
+  mount:   new THREE.MeshStandardMaterial({ color:0x6b7280, roughness:.4, metalness:.85 }),
+  black:   new THREE.MeshStandardMaterial({ color:0x0d1017, roughness:.6, metalness:.3 }),
+  alu:     new THREE.MeshStandardMaterial({ color:0xb8c2cf, roughness:.28, metalness:1.0 }),
+  copper:  new THREE.MeshStandardMaterial({ color:0xb87333, roughness:.3, metalness:.9 }),
+  gold:    new THREE.MeshStandardMaterial({ color:0xfbbf24, roughness:.2, metalness:1.0 }),
+  glass:   new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.05, metalness:0,
+                                            transmission:.85, thickness:.5,
+                                            transparent:true, opacity:.4 }),
+  pcb:     new THREE.MeshStandardMaterial({ color:0x0e3a2a, roughness:.7, metalness:.1 }),
+  chip:    new THREE.MeshStandardMaterial({ color:0x1a2030, roughness:.35, metalness:.6 }),
+  diamond: new THREE.MeshPhysicalMaterial({ color:0xdcf5ff, roughness:.02, metalness:.05,
+                                            transmission:.9, thickness:1.2,
+                                            transparent:true, opacity:.55,
+                                            ior:2.42 }),
+  laser:   new THREE.MeshStandardMaterial({ color:0x1c2430, roughness:.4, metalness:.7 }),
+  laserGlow: new THREE.MeshStandardMaterial({ color:0x22c55e, emissive:0x22ff66,
+                                              emissiveIntensity:3.2, roughness:.2 }),
+  screen:  new THREE.MeshStandardMaterial({ color:0x081018, roughness:.3, metalness:.5,
+                                            emissive:0x0a3a4a, emissiveIntensity:.7 }),
+};
+
+/* ============================================================
+   GROUPES (calqués sur les étapes d'assemblage)
+   ============================================================ */
+const LAYERS = [
+  { id:'table',  name:'Table optique + pieds', color:0x2a2f3a, on:true,
+    desc:"Plaque alvéolaire M6 sur pieds amortisseurs. Toute vibration > 1 µm détruit les franges de Ramsey — étape 1 du montage." },
+  { id:'laser',  name:'Laser 532 nm', color:0x22c55e, on:true,
+    desc:"DPSS 100 mW mode TEM00. Danger n°1 du banc : brûlure rétinienne immédiate. Lunettes OD4+ obligatoires." },
+  { id:'optics', name:'Chemin optique', color:0x22d3ee, on:true,
+    desc:"Lame dichroïque 550 nm, filtre passe-long 650 nm, miroirs et lentille. La dichroïque sépare excitation et fluorescence." },
+  { id:'objective', name:'Objectif ×50 NA 0.7', color:0x9aa4b2, on:true,
+    desc:"Excité ET collecte (épi-fluorescence). Haute ouverture numérique = collecte maximale de photons d'un spin unique." },
+  { id:'sample', name:'Diamant NV + platine XYZ', color:0xdcf5ff, on:true,
+    desc:"Le cœur du projet. Centre azote-lacune : spin S=1, splitting 2,87 GHz à champ nul. Platine XYZ pour viser un NV unique." },
+  { id:'mw',     name:'Antenne micro-onde', color:0xb87333, on:true,
+    desc:"Fil de cuivre 20 µm à ~50 µm du diamant. Le champ µ-onde décroît vite : la proximité maximise la pulsation de Rabi." },
+  { id:'apd',    name:'APD + compteur', color:0xa855f7, on:true,
+    desc:"Photodiode à avalanche : compte les photons rouges un par un, résolution ~ns. Le signal est faible — on travaille dans le noir." },
+  { id:'rack',   name:'Rack électronique', color:0xfbbf24, on:true,
+    desc:"Synthétiseur µ-onde 2–4 GHz, ampli + switch RF, séquenceur Pico RP2040, alim laser, DAQ. Câbles 50 Ω courts." },
+  { id:'screen', name:'Écran de contrôle', color:0x22d3ee, on:true,
+    desc:"Affiche le dip ODMR en temps réel. C'est là qu'on lit le test B5 — le moment de vérité du banc." },
+  { id:'encl',   name:'Enceinte classe 1', color:0x5a6577, on:true,
+    desc:"Boîtier de protection laser (étape sécurité). Confine le faisceau et exclut la lumière ambiante — les APD y sont sensibles." },
+];
+
+const groups = {};
+LAYERS.forEach(l => { groups[l.id] = new THREE.Group(); scene.add(groups[l.id]); });
+
+const root = new THREE.Group();
+root.add(...Object.values(groups));
+scene.add(root);
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const box = (w,h,d,m) => new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m);
+const cyl = (rt,rb,h,m,s=28) => new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,s), m);
+const sph = (r,m,s=24) => new THREE.Mesh(new THREE.SphereGeometry(r,s,s), m);
+
+function put(m, x, y, z, parent){
+  m.position.set(x,y,z);
+  m.castShadow = true; m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+
+/* ============================================================
+   1. TABLE OPTIQUE + PIEDS AMORTISSEURS  (étape 1)
+   ============================================================ */
+const TW = 20, TD = 14, TH = 0.5;
+const TBL_Y = 3.6;                       // hauteur du plan de table
+
+/* Plateau */
+const tableTop = box(TW, TH, TD, M.table);
+put(tableTop, 0, TBL_Y, 0, groups.table);
+
+/* Trous M6 — grille 25 mm, on n'en dessine qu'une partie pour la lisibilité */
+const holeGeo = new THREE.CylinderGeometry(0.05, 0.05, TH + 0.02, 6);
+const holes = new THREE.InstancedMesh(holeGeo, M.hole, 340);
+let hi = 0;
+const dummy = new THREE.Object3D();
+for (let ix = -9; ix <= 9; ix++){
+  for (let iz = -6; iz <= 6; iz++){
+    if (hi >= 340) break;
+    dummy.position.set(ix * 0.9, TBL_Y, iz * 0.9);
+    dummy.updateMatrix();
+    holes.setMatrixAt(hi++, dummy.matrix);
+  }
+}
+holes.count = hi;
+groups.table.add(holes);
+
+/* Pieds amortisseurs (4 coins) — barres + coussins */
+[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+  const px = sx * (TW/2 - 1.4), pz = sz * (TD/2 - 1.2);
+
+  /* Coussin pneumatique */
+  const pad = cyl(0.75, 0.85, 0.55, M.black, 20);
+  put(pad, px, 0.28, pz, groups.table);
+
+  /* Barre rigide */
+  const leg = cyl(0.34, 0.34, TBL_Y - 0.7, M.post, 18);
+  put(leg, px, (TBL_Y - 0.7)/2 + 0.55, pz, groups.table);
+
+  /* Embout de fixation */
+  const cap = cyl(0.55, 0.55, 0.16, M.mount, 20);
+  put(cap, px, TBL_Y - 0.33, pz, groups.table);
+});
+
+/* ============================================================
+   2. LASER 532 nm  (étape 2.1)
+   ============================================================ */
+const laserG = new THREE.Group();
+groups.laser.add(laserG);
+
+/* Corps du laser */
+const laserBody = box(2.6, 0.9, 1.0, M.laser);
+put(laserBody, 0, 0, 0, laserG);
+
+/* Ailettes de refroidissement */
+for (let i = 0; i < 7; i++){
+  const fin = box(0.08, 0.55, 0.9, M.alu);
+  put(fin, -1.0 + i * 0.28, 0.55, 0, laserG);
+}
+
+/* Sortie optique */
+const laserOut = cyl(0.16, 0.16, 0.35, M.alu, 18);
+laserOut.rotation.z = Math.PI/2;
+put(laserOut, 1.45, 0, 0, laserG);
+
+/* Témoin vert */
+const led = box(0.5, 0.12, 0.3, M.laserGlow);
+put(led, -0.9, 0.42, 0.36, laserG);
+
+/* Hublot / capot */
+const lid = box(2.2, 0.1, 0.85, M.alu);
+put(lid, 0, 0.47, 0, laserG);
+
+/* Monture sur table */
+const laserPost = cyl(0.3, 0.3, 1.1, M.post, 16);
+put(laserPost, 0, -0.95, 0, laserG);
+const laserBase = box(1.6, 0.22, 0.9, M.mount);
+put(laserBase, 0, -1.45, 0, laserG);
+
+laserG.position.set(-7.6, TBL_Y + 1.45 + 0.45, 0);
+
+/* ============================================================
+   3. CHEMIN OPTIQUE  (étape 2.2 + 4.1)
+   ============================================================ */
+const BEAM_Y = TBL_Y + 1.9;              // hauteur de faisceau constante
+
+/* --- Support cage : deux rails  --- */
+function cageRails(x, z, len, parent, axis='z'){
+  const g = new THREE.Group();
+  [-0.22, 0.22].forEach(off => {
+    const rail = cyl(0.035, 0.035, len, M.post, 8);
+    if (axis === 'z'){ rail.rotation.x = Math.PI/2; rail.position.set(off, 0, 0); }
+    else { rail.rotation.z = Math.PI/2; rail.position.set(0, off, 0); }
+    rail.castShadow = true;
+    g.add(rail);
+  });
+  g.position.set(x, BEAM_Y, z);
+  parent.add(g);
+  return g;
+}
+cageRails(0, 0, 9, groups.optics);
+
+/* --- Miroir de renvoi --- */
+const mir1 = box(0.06, 0.7, 0.7, M.glass);
+put(mir1, -5.6, BEAM_Y, 0, groups.optics);
+const mir1m = cyl(0.4, 0.4, 0.06, M.mount, 20);
+mir1m.rotation.z = Math.PI/2;
+put(mir1m, -5.72, BEAM_Y, 0, groups.optics);
+const mir1post = cyl(0.14, 0.14, 0.9, M.post, 12);
+put(mir1post, -5.6, BEAM_Y - 0.6, 0, groups.optics);
+
+/* --- Filtre de nettoyage 532 nm --- */
+const cleanFilter = cyl(0.34, 0.34, 0.1, M.glass, 24);
+cleanFilter.rotation.z = Math.PI/2;
+put(cleanFilter, -4.2, BEAM_Y, 0, groups.optics);
+const cfRing = cyl(0.38, 0.38, 0.14, M.mount, 24);
+cfRing.rotation.z = Math.PI/2;
+put(cfRing, -4.2, BEAM_Y, 0, groups.optics);
+
+/* --- LAME DICHROÏQUE 550 nm : la pièce maîtresse ---
+   À 45°, elle réfléchit le vert (532) vers le bas et transmet
+   le rouge (>600) venant du diamant vers l'APD. */
+const dichroG = new THREE.Group();
+const dichro = box(0.09, 1.5, 1.5, M.glass);
+dichro.rotation.z = Math.PI/4;
+put(dichro, 0, 0, 0, dichroG);
+const dichroRing = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.07, 10, 30), M.mount);
+dichroRing.rotation.set(0, Math.PI/2, Math.PI/4);
+put(dichroRing, 0, 0, 0, dichroG);
+/* Monture */
+const dichroPost = cyl(0.16, 0.16, 1.1, M.post, 14);
+put(dichroPost, 0, -0.85, 0, dichroG);
+const dichroBase = box(0.9, 0.2, 0.9, M.mount);
+put(dichroBase, 0, -1.48, 0, dichroG);
+dichroG.position.set(-2.4, BEAM_Y, 0);
+groups.optics.add(dichroG);
+
+/* --- Filtre passe-long 650 nm (après la dichroïque) --- */
+const longFilter = cyl(0.34, 0.34, 0.1, M.glass, 24);
+longFilter.rotation.z = Math.PI/2;
+put(longFilter, -0.5, BEAM_Y, 0, groups.optics);
+const lfRing = cyl(0.38, 0.38, 0.14, M.mount, 24);
+lfRing.rotation.z = Math.PI/2;
+put(lfRing, -0.5, BEAM_Y, 0, groups.optics);
+
+/* --- Lentille de focalisation --- */
+const lensG = new THREE.Group();
+const lens = cyl(0.36, 0.36, 0.16, M.glass, 28);
+lens.rotation.z = Math.PI/2;
+put(lens, 0, 0, 0, lensG);
+const lensRing = cyl(0.42, 0.42, 0.2, M.mount, 28);
+lensRing.rotation.z = Math.PI/2;
+put(lensRing, 0, 0, 0, lensG);
+const lensPost = cyl(0.13, 0.13, 0.75, M.post, 12);
+put(lensPost, 0, -0.62, 0, lensG);
+lensG.position.set(1.2, BEAM_Y, 0);
+groups.optics.add(lensG);
+
+/* ============================================================
+   4. OBJECTIF ×50  (étape 2.3) — pointé vers le bas
+   ============================================================ */
+const objG = new THREE.Group();
+
+/* Corps conique */
+const objBody = cyl(0.62, 0.42, 1.5, M.alu, 32);
+put(objBody, 0, 0, 0, objG);
+
+/* Bague de correction */
+const objRing = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.055, 10, 32), M.gold);
+objRing.rotation.x = Math.PI/2;
+put(objRing, 0, 0.45, 0, objG);
+
+/* Lentille frontale */
+const objFront = cyl(0.4, 0.4, 0.12, M.glass, 28);
+put(objFront, 0, -0.8, 0, objG);
+
+/* Filetage */
+for (let i = 0; i < 5; i++){
+  const th = new THREE.Mesh(new THREE.TorusGeometry(0.56, 0.03, 8, 30), M.mount);
+  th.rotation.x = Math.PI/2;
+  put(th, 0, 0.15 + i * 0.16, 0, objG);
+}
+
+objG.position.set(-2.4, BEAM_Y - 1.5, 0);
+groups.objective.add(objG);
+
+/* ============================================================
+   5. ÉCHANTILLON : DIAMANT + PLATINE XYZ  (étape 3)
+   ============================================================ */
+const sampleG = new THREE.Group();
+
+/* Platine XYZ micrométrique */
+const stageBase = box(2.4, 0.4, 2.4, M.mount);
+put(stageBase, 0, 0, 0, sampleG);
+const stageMid = box(1.9, 0.35, 1.9, M.alu);
+put(stageMid, 0, 0.38, 0, sampleG);
+const stageTop = box(1.4, 0.3, 1.4, M.mount);
+put(stageTop, 0, 0.7, 0, sampleG);
+
+/* Molette de réglage */
+[-1, 1].forEach(s => {
+  const knob = cyl(0.16, 0.16, 0.22, M.gold, 18);
+  knob.rotation.z = Math.PI/2;
+  put(knob, s * 1.25, 0.2, 0, sampleG);
+});
+
+/* Substrat porte-échantillon */
+const sub = box(0.9, 0.1, 0.9, M.chip);
+put(sub, 0, 0.9, 0, sampleG);
+
+/* LE DIAMANT — le cœur du projet */
+const diamond = new THREE.Mesh(
+  new THREE.OctahedronGeometry(0.34, 0),
+  M.diamond
+);
+diamond.position.set(0, 1.12, 0);
+diamond.castShadow = true;
+sampleG.add(diamond);
+
+/* Le centre NV : un point rouge minuscule qui fluoresce */
+const nvDot = sph(0.045, new THREE.MeshBasicMaterial({ color:0xff4466 }));
+nvDot.position.set(0, 1.12, 0);
+sampleG.add(nvDot);
+
+/* Halo de fluorescence */
+const nvHalo = new THREE.Mesh(
+  new THREE.SphereGeometry(0.3, 20, 20),
+  new THREE.MeshBasicMaterial({ color:0xff3355, transparent:true, opacity:.22,
+                                depthWrite:false })
+);
+nvHalo.position.set(0, 1.12, 0);
+sampleG.add(nvHalo);
+
+/* Lumière émise par le NV */
+const nvLight = new THREE.PointLight(0xff4466, 1.6, 3.2, 2);
+nvLight.position.set(0, 1.2, 0);
+sampleG.add(nvLight);
+
+sampleG.position.set(-2.4, TBL_Y + 0.25, 0);
+groups.sample.add(sampleG);
+
+/* ============================================================
+   6. ANTENNE MICRO-ONDE  (étape 3.1) — fil 20 µm
+   ============================================================ */
+const mwG = new THREE.Group();
+
+/* Fil de cuivre en boucle rapprochée */
+const mwCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-0.5, 0.34, -0.6),
+  new THREE.Vector3(0,   0.34, -0.75),
+  new THREE.Vector3(0.3, 0.34, -0.3),
+  new THREE.Vector3(0.34, 0.34, 0.3),
+  new THREE.Vector3(0,   0.34, 0.75),
+  new THREE.Vector3(-0.5, 0.34, 0.6),
+]);
+const mwWire = new THREE.Mesh(
+  new THREE.TubeGeometry(mwCurve, 60, 0.035, 8, false),
+  M.copper
+);
+mwWire.castShadow = true;
+mwG.add(mwWire);
+
+/* Support PCB de l'antenne */
+const mwBase = box(1.5, 0.1, 1.9, M.pcb);
+put(mwBase, -0.05, 0.24, 0, mwG);
+
+/* Connecteur SMA */
+const sma = cyl(0.18, 0.18, 0.4, M.gold, 18);
+sma.rotation.z = Math.PI/2;
+put(sma, -0.95, 0.34, 0, mwG);
+
+mwG.position.set(-2.4, TBL_Y + 1.35, 0);
+groups.mw.add(mwG);
+
+/* --- Aimants NdFeB (champ Zeeman) --- */
+[-1, 1].forEach(s => {
+  const mag = box(0.5, 0.6, 0.6, new THREE.MeshStandardMaterial({
+    color:0x3a4250, roughness:.35, metalness:.95 }));
+  put(mag, s * 1.5, TBL_Y + 1.5, 0, groups.mw);
+});
+
+/* ============================================================
+   7. APD — PHOTODIODE À AVALANCHE  (étape 4.2)
+   ============================================================ */
+const apdG = new THREE.Group();
+
+/* Boîtier */
+const apdBody = box(1.5, 1.1, 1.1, M.alu);
+put(apdBody, 0, 0, 0, apdG);
+
+/* Fenêtre d'entrée */
+const apdWin = cyl(0.26, 0.26, 0.1, M.glass, 24);
+apdWin.rotation.z = Math.PI/2;
+put(apdWin, -0.78, 0, 0, apdG);
+
+/* Dissipateur */
+for (let i = 0; i < 5; i++){
+  const fin = box(0.07, 0.85, 1.0, M.black);
+  put(fin, 0.15 + i * 0.16, 0.95, 0, apdG);
+}
+
+/* LED d'activité */
+const apdLed = sph(0.07, new THREE.MeshBasicMaterial({ color:0xa855f7 }));
+put(apdLed, -0.4, 0.62, 0.42, apdG);
+
+/* Sortie BNC */
+const bnc = cyl(0.15, 0.15, 0.35, M.gold, 16);
+bnc.rotation.z = Math.PI/2;
+put(bnc, 0.9, 0, 0, apdG);
+
+/* Monture */
+const apdPost = cyl(0.2, 0.2, 1.0, M.post, 14);
+put(apdPost, 0, -1.05, 0, apdG);
+
+apdG.position.set(3.2, BEAM_Y, 0);
+groups.apd.add(apdG);
+
+/* Lumière APD */
+const apdLight = new THREE.PointLight(0xa855f7, 0.8, 3, 2);
+apdLight.position.set(3.0, BEAM_Y + 0.3, 0);
+groups.apd.add(apdLight);
+
+/* ============================================================
+   8. RACK ÉLECTRONIQUE  (étape 5)
+   ============================================================ */
+const rackG = new THREE.Group();
+
+/* Châssis */
+const rackBody = box(4.4, 3.0, 2.2, M.black);
+put(rackBody, 0, 0, 0, rackG);
+
+/* Baies 1U */
+for (let i = 0; i < 5; i++){
+  const unit = box(4.0, 0.46, 0.12, M.alu);
+  put(unit, 0, 1.15 - i * 0.58, 1.11, rackG);
+
+  /* LEDs par baie */
+  for (let k = 0; k < 3; k++){
+    const l = sph(0.035, new THREE.MeshBasicMaterial({
+      color: [0x22c55e, 0x22d3ee, 0xfbbf24][k] }));
+    put(l, -1.6 + k * 0.14, 1.15 - i * 0.58, 1.18, rackG);
+  }
+  /* Bouton */
+  const kn = cyl(0.06, 0.06, 0.05, M.gold, 12);
+  kn.rotation.x = Math.PI/2;
+  put(kn, 1.5, 1.15 - i * 0.58, 1.18, rackG);
+}
+
+/* Nom des baies (bandes colorées) */
+[[0, 0x22c55e], [1, 0x22d3ee], [2, 0xfbbf24], [3, 0xa855f7], [4, 0xef4444]]
+  .forEach(([i, c]) => {
+    const tag = box(0.5, 0.2, 0.04, new THREE.MeshStandardMaterial({
+      color:c, emissive:c, emissiveIntensity:.7, roughness:.3 }));
+    put(tag, -1.85, 1.15 - i * 0.58, 1.15, rackG);
+  });
+
+rackG.position.set(7.4, TBL_Y + 1.75, -3.4);
+groups.rack.add(rackG);
+
+/* ============================================================
+   9. ÉCRAN DE CONTRÔLE  (avec vrai dip ODMR)
+   ============================================================ */
+const screenG = new THREE.Group();
+
+/* Cadre */
+const scrFrame = box(3.4, 2.3, 0.16, M.black);
+put(scrFrame, 0, 0, 0, screenG);
+
+/* Dalle */
+const scr = box(3.15, 2.05, 0.04, M.screen);
+put(scr, 0, 0, 0.1, screenG);
+
+/* Courbe ODMR dessinée sur la dalle */
+const canvasODMR = document.createElement('canvas');
+canvasODMR.width = 630; canvasODMR.height = 410;
+(function drawODMR(){
+  const g = canvasODMR.getContext('2d');
+  g.fillStyle = '#061018'; g.fillRect(0, 0, 630, 410);
+
+  /* Grille */
+  g.strokeStyle = 'rgba(34,211,238,.14)'; g.lineWidth = 1;
+  for (let i = 1; i < 8; i++){
+    g.beginPath(); g.moveTo(i * 630/8, 0); g.lineTo(i * 630/8, 410); g.stroke();
+  }
+  for (let i = 1; i < 5; i++){
+    g.beginPath(); g.moveTo(0, i * 410/5); g.lineTo(630, i * 410/5); g.stroke();
+  }
+
+  /* Spectre ODMR : dip à 2,87 GHz (physique réelle du NV) */
+  g.beginPath();
+  for (let px = 0; px <= 630; px++){
+    const f = 2.6 + (px / 630) * 0.6;          // 2.60 -> 3.20 GHz
+    /* Deux dips : ms=0 -> ms=±1 (splitting 2.87 GHz, écart Zeeman) */
+    const d1 = Math.exp(-Math.pow((f - 2.870) / 0.022, 2));
+    const d2 = Math.exp(-Math.pow((f - 2.940) / 0.022, 2));
+    const y = 1 - 0.34 * d1 - 0.22 * d2;
+    const py = 410 - y * 350 - 30;
+    px ? g.lineTo(px, py) : g.moveTo(px, py);
+  }
+  g.strokeStyle = '#22c55e'; g.lineWidth = 3; g.stroke();
+
+  /* Axe + libellés */
+  g.fillStyle = '#5eead4';
+  g.font = '600 22px Inter, sans-serif';
+  g.fillText('ODMR — fluorescence vs µ-onde', 22, 34);
+  g.font = '500 17px Inter, sans-serif';
+  g.fillStyle = '#7d90a8';
+  g.fillText('2.60', 18, 400); g.fillText('2.87', 292, 400); g.fillText('3.20', 580, 400);
+  g.fillStyle = '#f43f5e';
+  g.fillText('dip 2.87 GHz', 300, 130);
+})();
+
+const scrTex = new THREE.CanvasTexture(canvasODMR);
+const scrDraw = new THREE.Mesh(
+  new THREE.PlaneGeometry(3.05, 1.95),
+  new THREE.MeshBasicMaterial({ map:scrTex })
+);
+scrDraw.position.set(0, 0, 0.13);
+screenG.add(scrDraw);
+
+/* Pied */
+const scrPost = cyl(0.14, 0.14, 1.1, M.post, 12);
+put(scrPost, 0, -1.6, 0, screenG);
+const scrBase = box(1.4, 0.16, 0.7, M.mount);
+put(scrBase, 0, -2.2, 0, screenG);
+
+screenG.position.set(7.2, TBL_Y + 3.6, 0.2);
+screenG.rotation.y = -0.28;
+groups.screen.add(screenG);
+
+/* lueur de l'écran */
+const scrLight = new THREE.PointLight(0x22d3ee, 0.8, 5, 2);
+scrLight.position.set(7.2, TBL_Y + 3.6, 1.2);
+groups.screen.add(scrLight);
+
+/* ============================================================
+   10. ENCEINTE DE PROTECTION LASER  (sécurité §11)
+   ============================================================ */
+const enclMat = new THREE.MeshStandardMaterial({
+  color:0x5a6577, roughness:.35, metalness:.85,
+  transparent:true, opacity:.13, side:THREE.DoubleSide
+});
+
+const EW = 17, EH = 7.4, ED = 11.4;
+const enclG = new THREE.Group();
+
+/* 4 parois + toit */
+[[0,0,ED/2,0],[0,0,-ED/2,0],[EW/2,0,0,Math.PI/2],[-EW/2,0,0,Math.PI/2]].forEach(([x,y,z,ry]) => {
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(EW, EH), enclMat);
+  wall.position.set(x, EH/2, z);
+  wall.rotation.y = ry;
+  enclG.add(wall);
+});
+const roof = new THREE.Mesh(new THREE.PlaneGeometry(EW, ED), enclMat);
+roof.rotation.x = -Math.PI/2;
+roof.position.y = EH;
+enclG.add(roof);
+
+/* Arêtes */
+const edges = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(EW, EH, ED)),
+  new THREE.LineBasicMaterial({ color:0x7f8a9c, transparent:true, opacity:.5 })
+);
+edges.position.y = EH/2;
+enclG.add(edges);
+
+/* Panneau d'avertissement laser */
+const warn = box(1.5, 0.9, 0.04, new THREE.MeshStandardMaterial({
+  color:0xfbbf24, emissive:0xf59e0b, emissiveIntensity:.5, roughness:.4 }));
+put(warn, -EW/2 + 0.03, 5.6, 3.2, enclG);
+warn.rotation.y = Math.PI/2;
+
+enclG.position.set(0, TBL_Y, 0);
+groups.encl.add(enclG);
+
+/* ============================================================
+   FAISCEAUX LUMINEUX
+   ============================================================ */
+const beamG = new THREE.Group();
+scene.add(beamG);
+
+/* Vert : laser -> miroir -> filtre -> dichroïque -> objectif -> diamant */
+const greenPath = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-6.2, BEAM_Y, 0),
+  new THREE.Vector3(-5.6, BEAM_Y, 0),
+  new THREE.Vector3(-4.2, BEAM_Y, 0),
+  new THREE.Vector3(-2.5, BEAM_Y, 0),
+  new THREE.Vector3(-2.4, BEAM_Y - 0.8, 0),
+  new THREE.Vector3(-2.4, TBL_Y + 1.55, 0),
+]);
+const greenBeam = new THREE.Mesh(
+  new THREE.TubeGeometry(greenPath, 60, 0.045, 8, false),
+  new THREE.MeshBasicMaterial({ color:0x22ff66, transparent:true, opacity:.55 })
+);
+beamG.add(greenBeam);
+
+/* Rouge : diamant -> objectif -> dichroïque -> filtre -> lentille -> APD */
+const redPath = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-2.4, TBL_Y + 1.55, 0),
+  new THREE.Vector3(-2.4, BEAM_Y - 0.8, 0),
+  new THREE.Vector3(-2.4, BEAM_Y, 0),
+  new THREE.Vector3(-0.5, BEAM_Y, 0),
+  new THREE.Vector3(1.2, BEAM_Y, 0),
+  new THREE.Vector3(3.0, BEAM_Y, 0),
+]);
+const redBeam = new THREE.Mesh(
+  new THREE.TubeGeometry(redPath, 60, 0.04, 8, false),
+  new THREE.MeshBasicMaterial({ color:0xff3355, transparent:true, opacity:.5 })
+);
+beamG.add(redBeam);
+
+/* Photons verts animés */
+const greenPhotons = [];
+for (let i = 0; i < 7; i++){
+  const m = sph(0.075, new THREE.MeshBasicMaterial({ color:0x66ff99 }));
+  beamG.add(m);
+  greenPhotons.push({ m, off:i/7 });
+}
+
+/* Photons rouges animés (fluorescence) */
+const redPhotons = [];
+for (let i = 0; i < 5; i++){
+  const m = sph(0.07, new THREE.MeshBasicMaterial({ color:0xff5577 }));
+  beamG.add(m);
+  redPhotons.push({ m, off:i/5 });
+}
+
+/* ============================================================
+   SÉQUENCES DE MESURE (DESIGN §7)
+   ============================================================ */
+const SEQUENCES = {
+  ODMR: {
+    label:'ODMR',
+    desc:"<b>ODMR</b> — laser et µ-onde continus, balayage en fréquence. À la résonance (2,87 GHz), la fluorescence <b>chute</b> : on lit le spin par la lumière. C'est le test B5, le moment de vérité du banc.",
+    mw:'2.870 GHz', laser:'ON'
+  },
+  Rabi: {
+    label:'Rabi',
+    desc:"<b>Rabi</b> — pulse µ-onde de durée τ variable. La fluorescence <b>oscille</b> avec τ : c'est la pulsation Ω qui fixe le temps de porte.",
+    mw:'τ variable', laser:'ON'
+  },
+  Ramsey: {
+    label:'Ramsey',
+    desc:"<b>Ramsey</b> — π/2 … τ libre … π/2. Franges amorties donnant <b>T2*</b> (déphasing). Très sensible aux vibrations et aux champs parasites.",
+    mw:'π/2 · τ', laser:'ON'
+  },
+  Hahn: {
+    label:'Hahn',
+    desc:"<b>Écho de Hahn</b> — π/2 … τ … <b>π</b> … τ … π/2. Le pulse π central inverse le déphasage : les spins se refocalisent comme des coureurs qui font demi-tour. Donne <b>T2 &gt; T2*</b>.",
+    mw:'π/2 · π · π/2', laser:'ON'
+  },
+};
+let curSeq = 'ODMR';
+
+/* ============================================================
+   ÉTAT + INFO-BULLES  (déclarés AVANT les handlers)
+   ============================================================ */
+const state = Object.fromEntries(LAYERS.map(l => [l.id, true]));
+
+const INFO = {
+  table:     ['Table optique amortie', "Plaque alvéolaire M6 sur 4 coussins pneumatiques. Étape 1 du montage : sans elle, les franges de Ramsey disparaissent dans les vibrations."],
+  laser:     ['Laser DPSS 532 nm', "100 mW, mode TEM00. Excitation des centres NV. DANGER : brûlure rétinienne immédiate — lunettes OD4+ obligatoires."],
+  optics:    ['Lame dichroïque + filtres', "Pièce maîtresse : à 45°, elle réfléchit le vert 532 nm vers le diamant et transmet le rouge >600 nm vers l'APD. Le filtre 650 nm bloque le vert résiduel."],
+  objective: ['Objectif ×50 NA 0.7', "Géométrie épi-fluorescence : le même objectif excite ET collecte. La haute ouverture numérique maximise la collecte d'un spin unique."],
+  sample:    ['Diamant CVD + centre NV', "Azote adjacent à une lacune de carbone. Spin S=1, splitting 2,87 GHz à champ nul. Lecture optique par fluorescence rouge. T2 = ms à 300 K."],
+  mw:        ['Antenne micro-onde + aimants', "Fil de cuivre à ~50 µm du diamant. Les aimants NdFeB créent le champ Zeeman qui lève la dégénérescence ms=±1."],
+  apd:       ['APD — photodiode à avalanche', "Compte les photons rouges un par un, résolution temporelle ~ns. Signal très faible : le banc doit être dans le noir complet. Alimentation ~200 V."],
+  rack:      ['Rack électronique', "Synthétiseur µ-onde 2–4 GHz, ampli + switch RF, séquenceur Pico RP2040, alimentation laser, carte DAQ. Câbles 50 Ω courts pour limiter les pertes."],
+  screen:    ['Écran — dip ODMR réel', "Affiche le spectre de fluorescence. Les deux dips à 2,87 et 2,94 GHz correspondent aux transitions ms=0 → ms=±1, séparées par l'effet Zeeman."],
+  encl:      ['Enceinte de protection classe 1', "Confine le faisceau laser et exclut la lumière ambiante. Les APD comptent des photons uniques — la moindre fuite lumineuse noie le signal."],
+};
+
+const tip = document.getElementById('tip');
+const ray = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+renderer.domElement.addEventListener('pointermove', e => {
+  mouse.x = (e.clientX/innerWidth)*2 - 1;
+  mouse.y = -(e.clientY/innerHeight)*2 + 1;
+  ray.setFromCamera(mouse, camera);
+
+  let found = null;
+  for (const l of LAYERS){
+    if (!state[l.id]) continue;
+    const hits = ray.intersectObjects(groups[l.id].children, true);
+    if (hits.length){ found = l.id; break; }
+  }
+
+  if (found && INFO[found]){
+    tip.innerHTML = `<b>${INFO[found][0]}</b><span>${INFO[found][1]}</span>`;
+    tip.classList.add('show');
+    let tx = e.clientX + 16, ty = e.clientY + 16;
+    if (tx + 265 > innerWidth) tx = e.clientX - 275;
+    if (ty + 145 > innerHeight) ty = e.clientY - 155;
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  } else tip.classList.remove('show');
+});
+renderer.domElement.addEventListener('pointerleave', () => tip.classList.remove('show'));
+
+/* ============================================================
+   INTERFACE
+   ============================================================ */
+const el = id => document.getElementById(id);
+const compsHost = el('comps');
+
+LAYERS.forEach(l => {
+  const hex = '#' + l.color.toString(16).padStart(6,'0');
+  const row = document.createElement('div');
+  row.className = 'comp on';
+  row.innerHTML = `<span class="sw" style="background:${hex};color:${hex}"></span>
+                   <span class="ct"><strong>${l.name}</strong><em>${l.desc}</em></span>`;
+  row.addEventListener('click', () => {
+    state[l.id] = !state[l.id];
+    groups[l.id].visible = state[l.id];
+    row.classList.toggle('on', state[l.id]);
+    row.classList.toggle('off', !state[l.id]);
+  });
+  compsHost.appendChild(row);
+});
+
+/* Séquences */
+function setSeq(k){
+  curSeq = k;
+  document.querySelectorAll('.sq').forEach(s =>
+    s.classList.toggle('on', s.dataset.s === k));
+  el('seqInfo').innerHTML = SEQUENCES[k].desc;
+  el('hSeq').textContent = SEQUENCES[k].label;
+  el('hMw').textContent = SEQUENCES[k].mw;
+  el('hLaser').textContent = SEQUENCES[k].laser;
+  el('hLaser').style.color = '#22c55e';
+}
+document.querySelectorAll('.sq').forEach(s =>
+  s.addEventListener('click', () => setSeq(s.dataset.s)));
+setSeq('ODMR');
+
+/* ============================================================
+   OUTILS
+   ============================================================ */
+let exploded = false, showBeam = true;
+
+el('tPanel').addEventListener('click', () => {
+  el('panel').classList.toggle('hide');
+  el('tPanel').classList.toggle('on', el('panel').classList.contains('hide'));
+});
+
+el('tRot').addEventListener('click', () => {
+  controls.autoRotate = !controls.autoRotate;
+  el('tRot').classList.toggle('on', controls.autoRotate);
+});
+
+const EXPLODE = {
+  table:0, laser:1.4, optics:3.0, objective:3.9, sample:2.2,
+  mw:4.6, apd:3.0, rack:2.0, screen:1.2, encl:8.4
+};
+
+el('tExpl').addEventListener('click', () => {
+  exploded = !exploded;
+  el('tExpl').classList.toggle('on', exploded);
+  LAYERS.forEach(l => {
+    groups[l.id].userData.targetY = exploded ? EXPLODE[l.id] : 0;
+  });
+});
+
+el('tBeam').addEventListener('click', () => {
+  showBeam = !showBeam;
+  beamG.visible = showBeam;
+  el('tBeam').classList.toggle('on', showBeam);
+});
+
+el('tEncl').addEventListener('click', () => {
+  state.encl = !state.encl;
+  groups.encl.visible = state.encl;
+  el('tEncl').classList.toggle('on', !state.encl);
+  const row = [...compsHost.children].find((r,i) => LAYERS[i].id === 'encl');
+  if (row){ row.classList.toggle('on', state.encl); row.classList.toggle('off', !state.encl); }
+});
+
+el('tReset').addEventListener('click', () => {
+  camera.position.set(13, 11, 16);
+  controls.target.set(0, 2.2, 0);
+  controls.update();
+});
+
+/* ============================================================
+   ANIMATION
+   ============================================================ */
+const clock = new THREE.Clock();
+let apdCount = 0, apdSmooth = 0;
+
+function animate(){
+  requestAnimationFrame(animate);
+
+  const dt = clock.getDelta();
+  const t = clock.getElapsedTime();
+
+  /* --- Photons verts : laser -> diamant --- */
+  if (showBeam){
+    greenPhotons.forEach((p, i) => {
+      const u = (t * 0.42 + p.off) % 1;
+      p.m.position.copy(greenPath.getPoint(u));
+      const f = Math.sin(u * Math.PI);
+      p.m.material.opacity = 0.25 + f * 0.7;
+      p.m.scale.setScalar(0.55 + f * 0.6);
+    });
+
+    /* --- Photons rouges : fluorescence, modulés par la séquence --- */
+    let gate = 1;
+    if (curSeq === 'ODMR'){
+      /* Le dip ODMR : la fluorescence chute à la résonance */
+      gate = 0.35 + 0.65 * Math.abs(Math.sin(t * 0.8));
+    } else if (curSeq === 'Rabi'){
+      gate = 0.5 + 0.5 * Math.cos(t * 2.6);
+    } else if (curSeq === 'Ramsey'){
+      gate = 0.5 + 0.5 * Math.cos(t * 5.2) * Math.exp(-((t * 0.12) % 1) * 2.2);
+    } else {
+      /* Hahn : le pulse π central refocalise — pic d'écho */
+      const cyc = (t * 0.55) % 1;
+      const echo = Math.exp(-Math.pow((cyc - 0.72) / 0.09, 2));
+      gate = 0.22 + 0.78 * echo;
+    }
+
+    redPhotons.forEach((p, i) => {
+      const u = (t * 0.5 * (0.35 + gate * 0.85) + p.off) % 1;
+      p.m.position.copy(redPath.getPoint(u));
+      const f = Math.sin(u * Math.PI);
+      p.m.material.opacity = (0.15 + f * 0.75) * (0.35 + gate * 0.65);
+      p.m.scale.setScalar(0.5 + f * 0.6);
+    });
+
+    /* Intensité des faisceaux suit la séquence */
+    redBeam.material.opacity = 0.15 + gate * 0.42;
+    redBeam.material.color.setRGB(1, 0.2 + gate * 0.2, 0.33);
+  }
+
+  /* --- Le centre NV fluo-rescite --- */
+  const fluo = 0.65 + Math.sin(t * 3.1) * 0.3;
+  nvHalo.material.opacity = 0.14 + fluo * 0.2;
+  nvHalo.scale.setScalar(0.85 + fluo * 0.35);
+  nvLight.intensity = 1.0 + fluo * 1.1;
+
+  /* --- Diamant : rotation très lente (effet de réfraction) --- */
+  diamond.rotation.y += dt * 0.35;
+  diamond.rotation.x = Math.sin(t * 0.4) * 0.15;
+
+  /* --- APD : LED qui clignote au rythme des photons --- */
+  apdCount += dt * (12 + fluo * 45);
+  if (apdCount > 1){ apdCount = 0; apdLed.material.color.setHex(0xffffff); }
+  else apdLed.material.color.lerp(new THREE.Color(0xa855f7), 0.12);
+  apdLight.intensity = 0.4 + fluo * 0.9;
+
+  /* --- HUD : comptage APD --- */
+  const target = 40 + fluo * 120 + Math.random() * 8;
+  apdSmooth += (target - apdSmooth) * 0.08;
+  el('hApd').textContent = apdSmooth.toFixed(0) + ' kcps';
+
+  /* --- Transition vue éclatée --- */
+  LAYERS.forEach(l => {
+    const g = groups[l.id];
+    const tgt = g.userData.targetY ?? 0;
+    g.position.y += (tgt - g.position.y) * Math.min(dt * 5, 1);
+  });
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+animate();
+setTimeout(() => el('loader').classList.add('done'), 450);
+setTimeout(() => el('tEncl').classList.add('on'), 60);
+</script>
+</body>
+</html>

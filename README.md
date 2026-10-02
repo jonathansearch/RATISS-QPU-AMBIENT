@@ -51,6 +51,11 @@
 > Toutes les figures sont générées par le code (`scripts/generate_figures.py`) —
 > des données de la vraie physique simulée, pas des décorations.
 
+## 🌌 Vue 3D interactive — le banc NV assemblé
+
+**[▶ Ouvrir la vue 3D](https://jonathansearch.github.io/RATISS-QPU-AMBIENT/docs/visualisation-3d.html)** · fichier : [`docs/visualisation-3d.html`](docs/visualisation-3d.html)
+Rotation à un doigt, zoom à deux doigts. Three.js chargé depuis unpkg (connexion requise). Illustration, pas une mesure.
+
 ### ⚛️ Anatomie du qubit (visualisation scientifique)
 ![Anatomie du QPU NV](docs/images/08_qpu_scientifique.png)
 
