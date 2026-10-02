@@ -96,8 +96,11 @@ optique amortie.
 > pas un appareil construit. Le banc réel reste à assembler — voir la
 > feuille de route du `DESIGN.md`.
 
-<sub>▶ [Explorer la vue interactive](https://jonathansearch.github.io/RATISS-QPU-AMBIENT/docs/visualisation-3d.html) — rotation
-et zoom, Three.js chargé depuis unpkg (connexion requise).</sub>
+<p align="center">
+  <a href="https://jonathansearch.github.io/RATISS-QPU-AMBIENT/docs/visualisation-3d.html"><strong>▶ Ouvrir la page de visualisation interactive (HTML)</strong></a><br/>
+  <sub>v2 — signal physique en direct (ODMR · Rabi · Ramsey · Hahn), vue éclatée 3D, presets caméra,<br/>
+  repères 1–10, capture PNG. Three.js chargé depuis unpkg (connexion requise).</sub>
+</p>
 
 ### ⚛️ Anatomie du qubit (visualisation scientifique)
 ![Anatomie du QPU NV](docs/images/08_qpu_scientifique.png)
@@ -192,6 +195,7 @@ Voir `results/bell_cross_validation.json` et `ratiss_qpu/ibm_validation.py`.
 - `bench/firmware/` — firmware de pulsation MicroPython (Pico/Arduino)
 - `scripts/generate_figures.py` — régénère toutes les images de la doc
 - `scripts/rendre_pcb.py` — régénère les 3 vues 3D isométriques du README
+- `docs/visualisation-3d.html` — **page de visualisation interactive** du banc NV ⭐
 - `docs/GUIDE_VISUEL.md` — **le projet en images** ⭐
 - `docs/ARCHITECTURE.md` — comparatif physique rigoureux des 3 architectures
 - `docs/ASSEMBLY_BENCH.md` — plan d'assemblage optique + tests B1–B10
@@ -200,6 +204,8 @@ Voir `results/bell_cross_validation.json` et `ratiss_qpu/ibm_validation.py`.
 - `MEMO_QPU.md` — état d'avancement
 
 **Tests : 42/42 verts.**
+
+**Visualisation : [page interactive HTML](https://jonathansearch.github.io/RATISS-QPU-AMBIENT/docs/visualisation-3d.html) ⭐**
 
 ## ⚠️ Honnêteté scientifique (charte RATISS)
 

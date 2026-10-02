@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RATISS-QPU-AMBIENT — Banc NV assemblé · Vue 3D</title>
+<title>RATISS-QPU-AMBIENT — Banc NV assemblé · Vue 3D v2</title>
 <style>
   :root{
     --bg:#05070c; --panel:rgba(11,15,23,.91); --line:rgba(90,200,255,.16);
@@ -71,8 +71,12 @@
 
   .seqinfo{font-size:10.5px;color:var(--dim);line-height:1.55;padding:9px 11px;
            border-radius:9px;background:rgba(34,211,238,.06);
-           border-left:2px solid var(--cyan);margin-bottom:4px}
+           border-left:2px solid var(--cyan);margin-bottom:10px}
   .seqinfo b{color:var(--cyan)}
+
+  /* Traceur live */
+  #plot{width:100%;border-radius:9px;border:1px solid var(--line);
+        background:#061018;display:block;margin-bottom:4px}
 
   .legend{display:flex;gap:8px;font-size:10.5px;color:var(--dim);padding:3px 0;
           align-items:baseline}
@@ -82,6 +86,11 @@
         border-left:2px solid var(--violet);padding:8px 10px;border-radius:0 7px 7px 0;
         margin-top:11px;line-height:1.55}
   .hint b{color:var(--violet)}
+
+  .consts{font-size:9.5px;color:var(--dim);line-height:1.65;
+          background:rgba(255,255,255,.03);border:1px solid var(--line);
+          border-radius:8px;padding:8px 10px;margin-top:11px}
+  .consts b{color:var(--txt)}
 
   /* ---------------- Outils ---------------- */
   .tools{position:fixed;top:16px;right:16px;display:flex;flex-direction:column;gap:7px;z-index:10}
@@ -94,6 +103,18 @@
   .tb.on{color:var(--cyan);border-color:var(--cyan);background:rgba(34,211,238,.1)}
   .tb svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;
           stroke-linecap:round;stroke-linejoin:round}
+
+  /* ---------------- Presets caméra ---------------- */
+  #presets{position:fixed;left:16px;bottom:16px;display:flex;gap:6px;z-index:10;
+           flex-wrap:wrap;max-width:56vw}
+  .pb{height:32px;padding:0 11px;display:flex;align-items:center;gap:6px;cursor:pointer;
+      font-size:10px;font-weight:600;font-family:inherit;border-radius:9px;
+      border:1px solid var(--line);background:var(--panel);color:var(--dim);
+      backdrop-filter:blur(14px);transition:all .25s;white-space:nowrap}
+  .pb:hover{color:var(--cyan);border-color:rgba(34,211,238,.5)}
+  .pb.on{color:var(--cyan);border-color:var(--cyan);background:rgba(34,211,238,.1)}
+  .pb b{font-size:8.5px;color:var(--dim);border:1px solid var(--line);
+        border-radius:4px;padding:1px 4px;font-weight:700}
 
   #tip{
     position:fixed;pointer-events:none;z-index:40;opacity:0;transition:opacity .2s;
@@ -122,6 +143,24 @@
        box-shadow:0 0 8px var(--green);animation:bl 1.6s infinite}
   @keyframes bl{50%{opacity:.25}}
 
+  /* ---------------- Aide ---------------- */
+  #help{position:fixed;inset:0;background:rgba(3,6,12,.78);z-index:60;
+        display:none;place-items:center;backdrop-filter:blur(6px)}
+  #help.show{display:grid}
+  .hcard{width:min(440px,92vw);background:var(--panel);border:1px solid var(--line);
+         border-radius:16px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.8)}
+  .hcard h3{font-size:13px;margin-bottom:4px;color:var(--cyan);letter-spacing:.02em}
+  .hcard p{font-size:10.5px;color:var(--dim);margin-bottom:12px}
+  .hrow{display:flex;justify-content:space-between;align-items:center;font-size:11px;
+        color:var(--dim);padding:5px 0;border-bottom:1px dashed rgba(90,200,255,.1)}
+  .hrow b{color:var(--txt);font-weight:600}
+  kbd{background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:5px;
+      padding:1px 7px;font-size:10px;color:var(--cyan);font-family:inherit}
+  .hclose{margin-top:14px;text-align:center;font-size:10px;color:var(--dim)}
+
+  #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;
+         z-index:70;transition:opacity .35s}
+
   #loader{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);
           z-index:100;transition:opacity .7s;font-size:11.5px;color:var(--dim);
           letter-spacing:.14em;text-align:center}
@@ -134,8 +173,9 @@
   @media(max-width:860px){
     .panel{width:calc(100vw - 24px);left:12px;top:12px;max-height:45vh}
     .tools{top:auto;bottom:12px;right:12px;flex-direction:row}
-    .hud{bottom:auto;top:calc(45vh + 22px);padding:6px 13px;gap:9px}
+    .hud{bottom:64px;padding:6px 13px;gap:9px}
     .hud .v{font-size:11px}
+    #presets{bottom:12px;max-width:calc(100vw - 130px)}
   }
 </style>
 </head>
@@ -145,9 +185,9 @@
 <div id="scene"></div>
 
 <aside class="panel" id="panel">
-  <div class="eyebrow">RATISS-QPU-AMBIENT · Phase 1.5</div>
+  <div class="eyebrow">RATISS-QPU-AMBIENT · Phase 1.5 — vue interactive v2</div>
   <h1>Banc NV — microscope confocal</h1>
-  <p class="sub">Banc de mesure de centres azote-lacune à température ambiante. Assemblage selon <code>ASSEMBLY_BENCH.md</code>.</p>
+  <p class="sub">Banc de mesure de centres azote-lacune à température ambiante. Assemblage selon <code>ASSEMBLY_BENCH.md</code>. Écran et traceur <b>alimentés par un modèle de signal réel</b> — pas des décorations.</p>
 
   <div class="stats">
     <div class="st"><b>532</b><span>nm laser</span></div>
@@ -164,6 +204,8 @@
   </div>
   <div class="seqinfo" id="seqInfo"></div>
 
+  <canvas id="plot" width="584" height="256"></canvas>
+
   <h2>Éléments du banc</h2>
   <div id="comps"></div>
 
@@ -176,28 +218,51 @@
   <div class="hint">
     <b>Le moment de vérité :</b> le test <b>B5</b> — voir le dip ODMR à 2,87 GHz.
     S'il apparaît, le spin NV est adressé optiquement. Tout le reste en découle.
+    Regardez le faisceau rouge s'éteindre quand le balayage traverse le dip.
+  </div>
+
+  <div class="consts">
+    <b>Constantes (docs/PHYSICS.md) :</b> D = 2,870 GHz (ZFS) · γ<sub>e</sub> = 2,80 MHz/G ·
+    T2* ≈ 1–5 µs · T2(Hahn) ≈ 50–500 µs · T1 ≈ 1–5 ms à 300 K.
+    Contraste ODMR typique : 20–35 % sur un diamant CVD de qualité.
   </div>
 </aside>
 
 <div class="tools">
-  <button class="tb" id="tPanel" title="Masquer le panneau">
+  <button class="tb" id="tPanel" title="Masquer le panneau (L)">
     <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
   </button>
-  <button class="tb on" id="tRot" title="Rotation automatique">
+  <button class="tb on" id="tRot" title="Rotation automatique (R)">
     <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
   </button>
-  <button class="tb" id="tExpl" title="Vue éclatée">
+  <button class="tb" id="tExpl" title="Vue éclatée (E)">
     <svg viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>
   </button>
-  <button class="tb on" id="tBeam" title="Faisceaux lumineux">
+  <button class="tb on" id="tBeam" title="Faisceaux lumineux (B)">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
   </button>
-  <button class="tb" id="tEncl" title="Enceinte de protection">
+  <button class="tb" id="tEncl" title="Enceinte de protection (N)">
     <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
   </button>
-  <button class="tb" id="tReset" title="Réinitialiser">
+  <button class="tb" id="tLabels" title="Repères numérotés (M)">
+    <svg viewBox="0 0 24 24"><path d="M4 9c0-1.1.9-2 2-2h8l6 5-6 5H6a2 2 0 0 1-2-2z"/><circle cx="8" cy="12" r="1.2"/></svg>
+  </button>
+  <button class="tb" id="tShot" title="Capture PNG (S)">
+    <svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="3.2"/></svg>
+  </button>
+  <button class="tb" id="tHelp" title="Aide & raccourcis (H)">
+    <svg viewBox="0 0 24 24"><path d="M9 9a3 3 0 1 1 4.6 2.5c-1 .7-1.6 1.3-1.6 2.5"/><circle cx="12" cy="17.5" r=".4"/><circle cx="12" cy="12" r="10"/></svg>
+  </button>
+  <button class="tb" id="tReset" title="Réinitialiser la vue">
     <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/></svg>
   </button>
+</div>
+
+<div id="presets">
+  <button class="pb on" data-c="0">Général <b>1</b></button>
+  <button class="pb" data-c="1">Dichroïque <b>2</b></button>
+  <button class="pb" data-c="2">Diamant NV <b>3</b></button>
+  <button class="pb" data-c="3">Écran ODMR <b>4</b></button>
 </div>
 
 <div class="hud">
@@ -211,6 +276,25 @@
     <span class="led"></span>Laser</div><div class="v" id="hLaser">ON</div></div>
 </div>
 
+<div id="help">
+  <div class="hcard" id="hcard">
+    <h3>Raccourcis & commandes</h3>
+    <p>Tout est aussi accessible à la souris. Touche = action.</p>
+    <div class="hrow"><b>Presets caméra</b><span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd></span></div>
+    <div class="hrow"><b>Panneau latéral</b><span><kbd>L</kbd></span></div>
+    <div class="hrow"><b>Rotation auto</b><span><kbd>R</kbd></span></div>
+    <div class="hrow"><b>Vue éclatée 3D</b><span><kbd>E</kbd></span></div>
+    <div class="hrow"><b>Faisceaux & photons</b><span><kbd>B</kbd></span></div>
+    <div class="hrow"><b>Enceinte</b><span><kbd>N</kbd></span></div>
+    <div class="hrow"><b>Repères numérotés</b><span><kbd>M</kbd></span></div>
+    <div class="hrow"><b>Capture PNG</b><span><kbd>S</kbd></span></div>
+    <div class="hrow"><b>Cette aide</b><span><kbd>H</kbd></span></div>
+    <div class="hrow"><b>Survolez le banc</b><span>infobulle par composant</span></div>
+    <div class="hclose">cliquer n'importe où pour fermer</div>
+  </div>
+</div>
+
+<div id="flash"></div>
 <div id="tip"></div>
 
 <script type="importmap">
@@ -226,12 +310,20 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /* ============================================================
-   RATISS-QPU-AMBIENT — banc NV assemblé
+   RATISS-QPU-AMBIENT — banc NV assemblé · v2
    Source : jonathansearch/RATISS-QPU-AMBIENT
      docs/ASSEMBLY_BENCH.md  (schéma optique + étapes 1-5)
      DESIGN.md §3-5, §7     (plans, appareil monté, séquences)
      docs/BOM_BENCH.md      (14 composants)
      docs/PHYSICS.md        (D = 2.87 GHz, T2/T1)
+
+   v2 — nouveautés :
+     · écran 3D VIVANT (balayage réel + schéma de pulses)
+     · traceur live dans le panneau (canvas 2D)
+     · signal physique unique couplé à : photons, HUD, écran, traceur
+     · vue éclatée 3D chorégraphiée (pas que verticale)
+     · presets caméra animés, repères numérotés, raccourcis clavier
+     · capture PNG, aide intégrée, bug enceinte corrigé
    ============================================================ */
 
 const host = document.getElementById('scene');
@@ -444,7 +536,7 @@ laserG.position.set(-7.6, TBL_Y + 1.45 + 0.45, 0);
    ============================================================ */
 const BEAM_Y = TBL_Y + 1.9;              // hauteur de faisceau constante
 
-/* --- Support cage : deux rails  --- */
+/* --- Support cage : deux rails --- */
 function cageRails(x, z, len, parent, axis='z'){
   const g = new THREE.Group();
   [-0.22, 0.22].forEach(off => {
@@ -604,6 +696,9 @@ groups.sample.add(sampleG);
    ============================================================ */
 const mwG = new THREE.Group();
 
+/* Matériau cuivre dédié : l'antenne pulsera avec les séquences */
+const mwMat = M.copper.clone();
+
 /* Fil de cuivre en boucle rapprochée */
 const mwCurve = new THREE.CatmullRomCurve3([
   new THREE.Vector3(-0.5, 0.34, -0.6),
@@ -615,7 +710,7 @@ const mwCurve = new THREE.CatmullRomCurve3([
 ]);
 const mwWire = new THREE.Mesh(
   new THREE.TubeGeometry(mwCurve, 60, 0.035, 8, false),
-  M.copper
+  mwMat
 );
 mwWire.castShadow = true;
 mwG.add(mwWire);
@@ -717,8 +812,10 @@ for (let i = 0; i < 5; i++){
 rackG.position.set(7.4, TBL_Y + 1.75, -3.4);
 groups.rack.add(rackG);
 
+
 /* ============================================================
-   9. ÉCRAN DE CONTRÔLE  (avec vrai dip ODMR)
+   9. ÉCRAN DE CONTRÔLE  — VIVANT : il affiche la séquence
+      courante, balayée en temps réel (ODMR/Rabi/Ramsey/Hahn)
    ============================================================ */
 const screenG = new THREE.Group();
 
@@ -730,45 +827,9 @@ put(scrFrame, 0, 0, 0, screenG);
 const scr = box(3.15, 2.05, 0.04, M.screen);
 put(scr, 0, 0, 0.1, screenG);
 
-/* Courbe ODMR dessinée sur la dalle */
+/* Canvas de l'écran : redessiné en continu */
 const canvasODMR = document.createElement('canvas');
 canvasODMR.width = 630; canvasODMR.height = 410;
-(function drawODMR(){
-  const g = canvasODMR.getContext('2d');
-  g.fillStyle = '#061018'; g.fillRect(0, 0, 630, 410);
-
-  /* Grille */
-  g.strokeStyle = 'rgba(34,211,238,.14)'; g.lineWidth = 1;
-  for (let i = 1; i < 8; i++){
-    g.beginPath(); g.moveTo(i * 630/8, 0); g.lineTo(i * 630/8, 410); g.stroke();
-  }
-  for (let i = 1; i < 5; i++){
-    g.beginPath(); g.moveTo(0, i * 410/5); g.lineTo(630, i * 410/5); g.stroke();
-  }
-
-  /* Spectre ODMR : dip à 2,87 GHz (physique réelle du NV) */
-  g.beginPath();
-  for (let px = 0; px <= 630; px++){
-    const f = 2.6 + (px / 630) * 0.6;          // 2.60 -> 3.20 GHz
-    /* Deux dips : ms=0 -> ms=±1 (splitting 2.87 GHz, écart Zeeman) */
-    const d1 = Math.exp(-Math.pow((f - 2.870) / 0.022, 2));
-    const d2 = Math.exp(-Math.pow((f - 2.940) / 0.022, 2));
-    const y = 1 - 0.34 * d1 - 0.22 * d2;
-    const py = 410 - y * 350 - 30;
-    px ? g.lineTo(px, py) : g.moveTo(px, py);
-  }
-  g.strokeStyle = '#22c55e'; g.lineWidth = 3; g.stroke();
-
-  /* Axe + libellés */
-  g.fillStyle = '#5eead4';
-  g.font = '600 22px Inter, sans-serif';
-  g.fillText('ODMR — fluorescence vs µ-onde', 22, 34);
-  g.font = '500 17px Inter, sans-serif';
-  g.fillStyle = '#7d90a8';
-  g.fillText('2.60', 18, 400); g.fillText('2.87', 292, 400); g.fillText('3.20', 580, 400);
-  g.fillStyle = '#f43f5e';
-  g.fillText('dip 2.87 GHz', 300, 130);
-})();
 
 const scrTex = new THREE.CanvasTexture(canvasODMR);
 const scrDraw = new THREE.Mesh(
@@ -885,6 +946,64 @@ for (let i = 0; i < 5; i++){
   redPhotons.push({ m, off:i/5 });
 }
 
+/* --- Ondes µ-onde : anneaux qui se propagent depuis l'antenne --- */
+const mwRings = [];
+const ringGeo = new THREE.TorusGeometry(1, 0.028, 8, 44);
+for (let i = 0; i < 5; i++){
+  const r = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({
+    color:0xff9a3c, transparent:true, opacity:0 }));
+  r.rotation.x = Math.PI/2;
+  r.position.set(-2.4, TBL_Y + 1.55, 0);
+  beamG.add(r);
+  mwRings.push({ m:r, age:9 });
+}
+
+/* ============================================================
+   PHYSIQUE DU SIGNAL — UN SEUL MODÈLE COUPLE TOUT :
+   traceur du panneau, écran 3D, photons, halo NV, HUD APD.
+   Références : docs/PHYSICS.md (ZFS 2,87 GHz, contrastes ODMR).
+   ============================================================ */
+const DOM = {
+  ODMR:   [2.60, 3.20, 'fréquence µ-onde (GHz)', '2,60', '3,20'],
+  Rabi:   [0, 1500, 'durée du pulse τ (ns)', '0', '1500 ns'],
+  Ramsey: [0, 20, 'τ libre (µs)', '0', '20 µs'],
+  Hahn:   [0, 400, 'τ (µs)', '0', '400 µs'],
+};
+const SWEEP = { ODMR:6.5, Rabi:5.0, Ramsey:4.2, Hahn:6.0 };   // durée d'un balayage (s)
+
+/* ODMR : deux dips lorentziens — ZFS 2,870 GHz + composante Zeeman */
+const odmrCurve = f =>
+  1 - 0.36*Math.exp(-Math.pow((f-2.870)/0.018, 2))
+      - 0.24*Math.exp(-Math.pow((f-2.940)/0.014, 2));
+
+/* Rabi : oscillations amorties, Ω ↔ 220 ns de période, T2ρ ≈ 1,2 µs */
+const rabiCurve = ns => 0.5 + 0.5*Math.exp(-ns/1200)*Math.cos(2*Math.PI*ns/220);
+
+/* Ramsey : franges Δf = 0,30 MHz, enveloppe e^{-τ/T2*} avec T2* ≈ 2,2 µs */
+const ramseyCurve = us => 0.5 + 0.5*Math.exp(-us/2.2)*Math.cos(2*Math.PI*0.30*us);
+
+/* Hahn : amplitude d'écho e^{-2τ/T2}, T2 ≈ 180 µs */
+const hahnCurve = us => 0.06 + 0.94*Math.exp(-2*us/180);
+
+function signal(seq, u){                    // u ∈ [0,1] dans le domaine
+  const [a, b] = DOM[seq];
+  const x = a + (b - a) * u;
+  if (seq === 'ODMR')   return odmrCurve(x);
+  if (seq === 'Rabi')   return rabiCurve(x);
+  if (seq === 'Ramsey') return ramseyCurve(x);
+  return hahnCurve(x);
+}
+const sweepK = (t, seq) => 0.5 - 0.5*Math.cos(2*Math.PI*t/SWEEP[seq]);
+
+function paramLabel(seq, u){
+  const [a, b] = DOM[seq];
+  const x = a + (b - a) * u;
+  if (seq === 'ODMR')   return x.toFixed(3) + ' GHz';
+  if (seq === 'Rabi')   return x.toFixed(0) + ' ns';
+  if (seq === 'Ramsey') return x.toFixed(2) + ' µs';
+  return x.toFixed(0) + ' µs';
+}
+
 /* ============================================================
    SÉQUENCES DE MESURE (DESIGN §7)
    ============================================================ */
@@ -892,28 +1011,28 @@ const SEQUENCES = {
   ODMR: {
     label:'ODMR',
     desc:"<b>ODMR</b> — laser et µ-onde continus, balayage en fréquence. À la résonance (2,87 GHz), la fluorescence <b>chute</b> : on lit le spin par la lumière. C'est le test B5, le moment de vérité du banc.",
-    mw:'2.870 GHz', laser:'ON'
+    laser:'ON'
   },
   Rabi: {
     label:'Rabi',
     desc:"<b>Rabi</b> — pulse µ-onde de durée τ variable. La fluorescence <b>oscille</b> avec τ : c'est la pulsation Ω qui fixe le temps de porte.",
-    mw:'τ variable', laser:'ON'
+    laser:'ON'
   },
   Ramsey: {
     label:'Ramsey',
     desc:"<b>Ramsey</b> — π/2 … τ libre … π/2. Franges amorties donnant <b>T2*</b> (déphasing). Très sensible aux vibrations et aux champs parasites.",
-    mw:'π/2 · τ', laser:'ON'
+    laser:'ON'
   },
   Hahn: {
     label:'Hahn',
     desc:"<b>Écho de Hahn</b> — π/2 … τ … <b>π</b> … τ … π/2. Le pulse π central inverse le déphasage : les spins se refocalisent comme des coureurs qui font demi-tour. Donne <b>T2 &gt; T2*</b>.",
-    mw:'π/2 · π · π/2', laser:'ON'
+    laser:'ON'
   },
 };
 let curSeq = 'ODMR';
 
 /* ============================================================
-   ÉTAT + INFO-BULLES  (déclarés AVANT les handlers)
+   ÉTAT + INFO-BULLES
    ============================================================ */
 const state = Object.fromEntries(LAYERS.map(l => [l.id, true]));
 
@@ -926,7 +1045,7 @@ const INFO = {
   mw:        ['Antenne micro-onde + aimants', "Fil de cuivre à ~50 µm du diamant. Les aimants NdFeB créent le champ Zeeman qui lève la dégénérescence ms=±1."],
   apd:       ['APD — photodiode à avalanche', "Compte les photons rouges un par un, résolution temporelle ~ns. Signal très faible : le banc doit être dans le noir complet. Alimentation ~200 V."],
   rack:      ['Rack électronique', "Synthétiseur µ-onde 2–4 GHz, ampli + switch RF, séquenceur Pico RP2040, alimentation laser, carte DAQ. Câbles 50 Ω courts pour limiter les pertes."],
-  screen:    ['Écran — dip ODMR réel', "Affiche le spectre de fluorescence. Les deux dips à 2,87 et 2,94 GHz correspondent aux transitions ms=0 → ms=±1, séparées par l'effet Zeeman."],
+  screen:    ['Écran — spectre vivant', "Affiche la séquence en cours, balayée en temps réel. Les deux dips à 2,87 et 2,94 GHz : transitions ms=0 → ms=±1 séparées par l'effet Zeeman."],
   encl:      ['Enceinte de protection classe 1', "Confine le faisceau laser et exclut la lumière ambiante. Les APD comptent des photons uniques — la moindre fuite lumineuse noie le signal."],
 };
 
@@ -959,6 +1078,236 @@ renderer.domElement.addEventListener('pointermove', e => {
 renderer.domElement.addEventListener('pointerleave', () => tip.classList.remove('show'));
 
 /* ============================================================
+   REPÈRES NUMÉROTÉS (sprites billboards, 1–10)
+   ============================================================ */
+function numTexture(n, hex){
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.beginPath(); g.arc(64, 64, 42, 0, 7);
+  g.fillStyle = hex; g.globalAlpha = .94; g.fill();
+  g.globalAlpha = 1;
+  g.lineWidth = 7; g.strokeStyle = '#5eead4'; g.stroke();
+  g.fillStyle = '#04121a';
+  g.font = '700 52px Inter, Arial, sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(String(n), 64, 66);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 4;
+  return t;
+}
+
+const ANCHOR = {
+  table:     [0,    TBL_Y + 0.55,  TD/2 + 0.7],
+  laser:     [-7.6, TBL_Y + 2.25, 0],
+  optics:    [-4.2, BEAM_Y + 0.95, 0.85],
+  objective: [-2.4, BEAM_Y - 0.75, 0.95],
+  sample:    [-2.4, TBL_Y + 1.65, 1.55],
+  mw:        [-2.4, TBL_Y + 1.95, -1.45],
+  apd:       [3.2,  BEAM_Y + 0.95, 0.95],
+  rack:      [7.4,  TBL_Y + 3.55, -3.4],
+  screen:    [7.2,  TBL_Y + 5.15, 0.2],
+  encl:      [-EW/2, TBL_Y + EH - 0.15, -ED/2],
+};
+
+const labelsG = new THREE.Group();
+labelsG.visible = false;
+LAYERS.forEach((l, i) => {
+  const hex = '#' + l.color.toString(16).padStart(6, '0');
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: numTexture(i + 1, hex),
+    depthTest:false, transparent:true }));
+  sp.scale.setScalar(0.62);
+  sp.renderOrder = 999;
+  sp.position.set(...ANCHOR[l.id]);
+  sp.visible = false;            // masqués au départ (bouton M pour les afficher)
+  groups[l.id].add(sp);          // enfant du groupe → l'éclaté l'emporte
+});
+scene.add(labelsG);
+/* le groupe porte les sprites : visible bascule via userData */
+function setLabels(v){
+  LAYERS.forEach(l => {
+    for (const ch of groups[l.id].children)
+      if (ch.isSprite) ch.visible = v;
+  });
+}
+
+/* ============================================================
+   ÉCRAN 3D — RENDU DU SPECTRE VIVANT
+   ============================================================ */
+function drawScreen(t){
+  const g = canvasODMR.getContext('2d');
+  const W = 630, H = 410;
+  g.fillStyle = '#061018'; g.fillRect(0, 0, W, H);
+
+  /* grille */
+  g.strokeStyle = 'rgba(34,211,238,.14)'; g.lineWidth = 1;
+  for (let i = 1; i < 8; i++){
+    g.beginPath(); g.moveTo(i*W/8, 0); g.lineTo(i*W/8, H); g.stroke();
+  }
+  for (let i = 1; i < 5; i++){
+    g.beginPath(); g.moveTo(0, i*H/5); g.lineTo(W, i*H/5); g.stroke();
+  }
+
+  /* courbe du signal */
+  g.beginPath();
+  for (let i = 0; i <= 160; i++){
+    const u = i/160;
+    const y = 30 + (H - 105) * (1 - signal(curSeq, u));
+    i ? g.lineTo(u*W, y) : g.moveTo(u*W, y);
+  }
+  g.strokeStyle = '#22c55e'; g.lineWidth = 3; g.stroke();
+
+  /* remplissage léger sous la courbe */
+  g.lineTo(W, 30 + (H-105)); g.lineTo(0, 30 + (H-105)); g.closePath();
+  g.fillStyle = 'rgba(34,197,94,.07)'; g.fill();
+
+  /* curseur de balayage */
+  const k = sweepK(t, curSeq);
+  const cx = k * W;
+  const cy = 30 + (H - 105) * (1 - signal(curSeq, k));
+  g.setLineDash([5, 5]);
+  g.strokeStyle = 'rgba(34,211,238,.55)'; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(cx, 14); g.lineTo(cx, H - 58); g.stroke();
+  g.setLineDash([]);
+  g.beginPath(); g.arc(cx, cy, 7, 0, 7);
+  g.fillStyle = '#eafcff'; g.fill();
+  g.strokeStyle = '#22d3ee'; g.lineWidth = 3; g.stroke();
+
+  /* titres + valeurs live */
+  g.fillStyle = '#5eead4';
+  g.font = '600 24px Inter, Arial, sans-serif';
+  g.fillText(curSeq + ' — banc NV en direct', 20, 34);
+  g.font = '500 17px Inter, Arial, sans-serif';
+  g.fillStyle = '#7d90a8';
+  g.fillText('F = ' + signal(curSeq, k).toFixed(2), 20, 58);
+  g.textAlign = 'right';
+  g.fillStyle = '#22d3ee';
+  g.fillText(paramLabel(curSeq, k), W - 20, 34);
+  g.textAlign = 'left';
+
+  /* repères d'axe */
+  g.fillStyle = '#7d90a8';
+  g.fillText(DOM[curSeq][3], 18, H - 12);
+  g.textAlign = 'right';
+  g.fillText(DOM[curSeq][4], W - 18, H - 12);
+  g.textAlign = 'left';
+  g.fillText(DOM[curSeq][2], W/2 - 60, H - 12);
+
+  /* schéma de pulses en bas */
+  const yB = H - 44;
+  if (curSeq === 'ODMR'){
+    g.fillStyle = '#fa923c';
+    g.font = '600 15px Inter, Arial, sans-serif';
+    g.fillText('µ-onde CW — balayage 2,60 → 3,20 GHz', 150, yB + 12);
+  } else {
+    /* laser : barre verte continue */
+    g.fillStyle = 'rgba(34,197,94,.8)';
+    g.fillRect(20, yB + 18, W - 40, 4);
+    g.fillStyle = '#22c55e';
+    g.font = '600 12px Inter, Arial, sans-serif';
+    g.fillText('laser', 20, yB + 36);
+    /* pulses µ-onde : orange */
+    g.fillStyle = '#fa923c';
+    const pw = 22, ph = 14;
+    if (curSeq === 'Rabi'){
+      g.fillRect(W*0.34, yB + 4, W*0.32, ph);
+      g.fillText('τ', W*0.49, yB - 2);
+    } else if (curSeq === 'Ramsey'){
+      g.fillRect(W*0.28, yB + 4, pw, ph);
+      g.fillRect(W*0.66, yB + 4, pw, ph);
+      g.fillText('π/2', W*0.24, yB - 2);
+      g.fillText('π/2', W*0.62, yB - 2);
+      g.fillStyle = '#7d90a8';
+      g.fillText('τ', W*0.48, yB - 2);
+    } else {
+      g.fillRect(W*0.22, yB + 4, pw, ph);
+      g.fillRect(W*0.46, yB + 4, pw*1.9, ph);
+      g.fillRect(W*0.72, yB + 4, pw, ph);
+      g.fillText('π/2', W*0.19, yB - 2);
+      g.fillText('π', W*0.50, yB - 2);
+      g.fillText('π/2', W*0.69, yB - 2);
+    }
+    g.fillStyle = '#fa923c';
+    g.fillText('µ-onde', W - 70, yB + 36);
+  }
+  scrTex.needsUpdate = true;
+}
+
+/* ============================================================
+   TRACEUR LIVE DU PANNEAU (canvas 2D haute résolution)
+   ============================================================ */
+const plot = document.getElementById('plot');
+function drawPlot(t){
+  const g = plot.getContext('2d');
+  const W = plot.width, H = plot.height;
+  const padL = 66, padR = 20, padT = 46, padB = 58;
+  const iw = W - padL - padR, ih = H - padT - padB;
+
+  g.fillStyle = '#061018'; g.fillRect(0, 0, W, H);
+
+  /* grille horizontale */
+  g.strokeStyle = 'rgba(34,211,238,.10)'; g.lineWidth = 1;
+  g.fillStyle = '#57687e';
+  g.font = '500 15px Inter, Arial, sans-serif';
+  g.textAlign = 'right';
+  for (let i = 0; i <= 4; i++){
+    const y = padT + ih * i/4;
+    g.beginPath(); g.moveTo(padL, y); g.lineTo(W - padR, y); g.stroke();
+    g.fillText((1 - i/4).toFixed(2), padL - 10, y + 5);
+  }
+  g.textAlign = 'left';
+
+  /* courbe */
+  g.beginPath();
+  for (let i = 0; i <= 160; i++){
+    const u = i/160;
+    const x = padL + iw * u;
+    const y = padT + ih * (1 - signal(curSeq, u));
+    i ? g.lineTo(x, y) : g.moveTo(x, y);
+  }
+  g.strokeStyle = '#22c55e'; g.lineWidth = 3.5; g.stroke();
+
+  /* remplissage */
+  g.lineTo(padL + iw, padT + ih); g.lineTo(padL, padT + ih); g.closePath();
+  const gr = g.createLinearGradient(0, padT, 0, padT + ih);
+  gr.addColorStop(0, 'rgba(34,197,94,.25)');
+  gr.addColorStop(1, 'rgba(34,197,94,0)');
+  g.fillStyle = gr; g.fill();
+
+  /* curseur */
+  const k = sweepK(t, curSeq);
+  const cx = padL + iw * k;
+  const cy = padT + ih * (1 - signal(curSeq, k));
+  g.setLineDash([6, 5]);
+  g.strokeStyle = 'rgba(34,211,238,.6)'; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(cx, padT - 8); g.lineTo(cx, padT + ih); g.stroke();
+  g.setLineDash([]);
+  g.beginPath(); g.arc(cx, cy, 8, 0, 7);
+  g.fillStyle = '#eafcff'; g.fill();
+  g.strokeStyle = '#22d3ee'; g.lineWidth = 3.5; g.stroke();
+
+  /* axes + titres */
+  g.fillStyle = '#57687e';
+  g.textAlign = 'left';
+  g.fillText(DOM[curSeq][3], padL - 12, H - 16);
+  g.textAlign = 'right';
+  g.fillText(DOM[curSeq][4], padL + iw + 14, H - 16);
+  g.textAlign = 'center';
+  g.fillText(DOM[curSeq][2], padL + iw/2, H - 16);
+  g.textAlign = 'left';
+
+  g.fillStyle = '#5eead4';
+  g.font = '600 22px Inter, Arial, sans-serif';
+  g.fillText(curSeq + ' — fluorescence normalisée', padL - 30, 26);
+  g.textAlign = 'right';
+  g.fillStyle = '#22d3ee';
+  g.font = '600 20px Inter, Arial, sans-serif';
+  g.fillText(paramLabel(curSeq, k), W - padR, 26);
+  g.textAlign = 'left';
+}
+
+/* ============================================================
    INTERFACE
    ============================================================ */
 const el = id => document.getElementById(id);
@@ -986,7 +1335,6 @@ function setSeq(k){
     s.classList.toggle('on', s.dataset.s === k));
   el('seqInfo').innerHTML = SEQUENCES[k].desc;
   el('hSeq').textContent = SEQUENCES[k].label;
-  el('hMw').textContent = SEQUENCES[k].mw;
   el('hLaser').textContent = SEQUENCES[k].laser;
   el('hLaser').style.color = '#22c55e';
 }
@@ -997,7 +1345,7 @@ setSeq('ODMR');
 /* ============================================================
    OUTILS
    ============================================================ */
-let exploded = false, showBeam = true;
+let exploded = false, showBeam = true, rotWanted = true, idleTimer = null;
 
 el('tPanel').addEventListener('click', () => {
   el('panel').classList.toggle('hide');
@@ -1005,21 +1353,44 @@ el('tPanel').addEventListener('click', () => {
 });
 
 el('tRot').addEventListener('click', () => {
-  controls.autoRotate = !controls.autoRotate;
-  el('tRot').classList.toggle('on', controls.autoRotate);
+  rotWanted = !rotWanted;
+  controls.autoRotate = rotWanted;
+  el('tRot').classList.toggle('on', rotWanted);
+  if (idleTimer){ clearTimeout(idleTimer); idleTimer = null; }
 });
 
+/* Vue éclatée 3D : chaque groupe part dans SA direction, avec un
+   léger décalage temporel (chorégraphie) — pas un simple étagement. */
 const EXPLODE = {
-  table:0, laser:1.4, optics:3.0, objective:3.9, sample:2.2,
-  mw:4.6, apd:3.0, rack:2.0, screen:1.2, encl:8.4
+  table:[0, 0, 0],
+  laser:[-5.2, 1.4, 0],
+  optics:[0, 3.4, 3.2],
+  objective:[1.4, 5.6, -2.4],
+  sample:[4.0, 6.8, 2.7],
+  mw:[6.6, 9.0, -1.6],
+  apd:[7.2, 4.8, 3.1],
+  rack:[-2.8, 6.0, -5.8],
+  screen:[2.5, 6.2, -5.4],
+  encl:[0, 12.0, 0],
 };
+const easeIO = x => x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3)/2;
 
 el('tExpl').addEventListener('click', () => {
   exploded = !exploded;
   el('tExpl').classList.toggle('on', exploded);
-  LAYERS.forEach(l => {
-    groups[l.id].userData.targetY = exploded ? EXPLODE[l.id] : 0;
+  LAYERS.forEach((l, i) => {
+    const g = groups[l.id];
+    const e = EXPLODE[l.id];
+    g.userData.anim = {
+      from: g.position.clone(),
+      to: new THREE.Vector3(...(exploded ? e : [0, 0, 0])),
+      start: clock.elapsedTime + i * 0.055,
+      dur: 0.9,
+    };
   });
+  /* Quand on éclate, reculer la caméra pour voir tout le nuage ;
+     quand on rassemble, revenir au cadrage général. */
+  goCameraTo(exploded ? [19, 15, 22] : [13, 11, 16], exploded ? [0, 5.5, 0] : [0, 2.2, 0], 1400);
 });
 
 el('tBeam').addEventListener('click', () => {
@@ -1032,31 +1403,126 @@ el('tEncl').addEventListener('click', () => {
   state.encl = !state.encl;
   groups.encl.visible = state.encl;
   el('tEncl').classList.toggle('on', !state.encl);
-  const row = [...compsHost.children].find((r,i) => LAYERS[i].id === 'encl');
+  const idx = LAYERS.findIndex(l => l.id === 'encl');
+  const row = compsHost.children[idx];
   if (row){ row.classList.toggle('on', state.encl); row.classList.toggle('off', !state.encl); }
 });
+
+el('tLabels').addEventListener('click', () => {
+  const v = !labelsG.visible;
+  labelsG.visible = v;
+  setLabels(v);
+  el('tLabels').classList.toggle('on', v);
+});
+
+el('tShot').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const a = document.createElement('a');
+  a.download = 'ratiss-banc-nv-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.png';
+  a.href = renderer.domElement.toDataURL('image/png');
+  a.click();
+  const f = el('flash');
+  f.style.opacity = .85;
+  setTimeout(() => f.style.opacity = 0, 70);
+});
+
+function toggleHelp(){
+  el('help').classList.toggle('show');
+}
+el('tHelp').addEventListener('click', toggleHelp);
+el('help').addEventListener('click', e => {
+  if (e.target.id === 'help' || e.target.id === 'hcard') el('help').classList.remove('show');
+});
+
+/* Presets caméra */
+const PRESETS = [
+  { pos:[13, 11, 16],                      tgt:[0, 2.2, 0] },
+  { pos:[-4.8, BEAM_Y + 2.6, 5.6],         tgt:[-2.4, BEAM_Y - 0.3, 0] },
+  { pos:[-0.7, TBL_Y + 3.6, 3.6],          tgt:[-2.4, TBL_Y + 1.35, 0] },
+  { pos:[3.6, TBL_Y + 3.9, 5.6],           tgt:[7.2, TBL_Y + 3.6, 0.2] },
+];
+let camTween = null;
+const presetBtns = [...document.querySelectorAll('#presets .pb')];
+
+/* Vol de caméra générique : positions cibles + durée */
+function goCameraTo(pos, tgt, dur = 1250){
+  camTween = {
+    t0: performance.now(), dur,
+    p0: camera.position.clone(), q0: controls.target.clone(),
+    p1: new THREE.Vector3(...pos), q1: new THREE.Vector3(...tgt),
+  };
+  controls.autoRotate = false;
+}
+
+function goPreset(i){
+  const p = PRESETS[i];
+  goCameraTo(p.pos, p.tgt);
+  presetBtns.forEach((b, j) => b.classList.toggle('on', j === i));
+}
+presetBtns.forEach((b, i) => b.addEventListener('click', () => goPreset(i)));
 
 el('tReset').addEventListener('click', () => {
   camera.position.set(13, 11, 16);
   controls.target.set(0, 2.2, 0);
   controls.update();
+  presetBtns.forEach((b, j) => b.classList.toggle('on', j === 0));
+});
+
+/* Interaction utilisateur = stop rotation/tween, reprise après pause */
+renderer.domElement.addEventListener('pointerdown', () => {
+  camTween = null;
+  controls.autoRotate = false;
+  if (idleTimer){ clearTimeout(idleTimer); idleTimer = null; }
+});
+renderer.domElement.addEventListener('pointerup', () => {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { controls.autoRotate = rotWanted; }, 9000);
 });
 
 /* ============================================================
-   ANIMATION
+   RACCOURCIS CLAVIER
+   ============================================================ */
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'h' || k === '?'){ toggleHelp(); return; }
+  if (k === 'escape'){ el('help').classList.remove('show'); return; }
+  const presetIdx = { '1':0, '2':1, '3':2, '4':3 }[k];
+  if (presetIdx !== undefined){ goPreset(presetIdx); return; }
+  const act = { l:'tPanel', r:'tRot', e:'tExpl', b:'tBeam',
+                n:'tEncl', m:'tLabels', s:'tShot' }[k];
+  if (act) el(act).click();
+});
+
+/* ============================================================
+   ANIMATION — un seul modèle de signal pilote tout
    ============================================================ */
 const clock = new THREE.Clock();
-let apdCount = 0, apdSmooth = 0;
+let apdCount = 0, apdSmooth = 45, gate = 1, frame = 0, booted = false;
 
 function animate(){
   requestAnimationFrame(animate);
 
-  const dt = clock.getDelta();
+  const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.getElapsedTime();
+  frame++;
+
+  /* --- Signal physique courant --- */
+  const k = sweepK(t, curSeq);
+  const sig = signal(curSeq, k);
+  gate += ((0.25 + 0.75*sig) - gate) * Math.min(1, dt * 10);
+
+  /* --- Transition caméra (presets) --- */
+  if (camTween){
+    const q = Math.min(1, (performance.now() - camTween.t0) / camTween.dur);
+    const e = easeIO(q);
+    camera.position.lerpVectors(camTween.p0, camTween.p1, e);
+    controls.target.lerpVectors(camTween.q0, camTween.q1, e);
+    if (q >= 1) camTween = null;
+  }
 
   /* --- Photons verts : laser -> diamant --- */
   if (showBeam){
-    greenPhotons.forEach((p, i) => {
+    greenPhotons.forEach(p => {
       const u = (t * 0.42 + p.off) % 1;
       p.m.position.copy(greenPath.getPoint(u));
       const f = Math.sin(u * Math.PI);
@@ -1064,23 +1530,8 @@ function animate(){
       p.m.scale.setScalar(0.55 + f * 0.6);
     });
 
-    /* --- Photons rouges : fluorescence, modulés par la séquence --- */
-    let gate = 1;
-    if (curSeq === 'ODMR'){
-      /* Le dip ODMR : la fluorescence chute à la résonance */
-      gate = 0.35 + 0.65 * Math.abs(Math.sin(t * 0.8));
-    } else if (curSeq === 'Rabi'){
-      gate = 0.5 + 0.5 * Math.cos(t * 2.6);
-    } else if (curSeq === 'Ramsey'){
-      gate = 0.5 + 0.5 * Math.cos(t * 5.2) * Math.exp(-((t * 0.12) % 1) * 2.2);
-    } else {
-      /* Hahn : le pulse π central refocalise — pic d'écho */
-      const cyc = (t * 0.55) % 1;
-      const echo = Math.exp(-Math.pow((cyc - 0.72) / 0.09, 2));
-      gate = 0.22 + 0.78 * echo;
-    }
-
-    redPhotons.forEach((p, i) => {
+    /* --- Photons rouges : la fluorescence SUIT le signal mesuré --- */
+    redPhotons.forEach(p => {
       const u = (t * 0.5 * (0.35 + gate * 0.85) + p.off) % 1;
       p.m.position.copy(redPath.getPoint(u));
       const f = Math.sin(u * Math.PI);
@@ -1088,41 +1539,81 @@ function animate(){
       p.m.scale.setScalar(0.5 + f * 0.6);
     });
 
-    /* Intensité des faisceaux suit la séquence */
-    redBeam.material.opacity = 0.15 + gate * 0.42;
+    redBeam.material.opacity = 0.12 + gate * 0.45;
     redBeam.material.color.setRGB(1, 0.2 + gate * 0.2, 0.33);
-  }
 
-  /* --- Le centre NV fluo-rescite --- */
-  const fluo = 0.65 + Math.sin(t * 3.1) * 0.3;
-  nvHalo.material.opacity = 0.14 + fluo * 0.2;
+    /* --- Ondes µ-onde : anneaux pendant les séquences pulsées --- */
+    if (curSeq !== 'ODMR'){
+      const interval = curSeq === 'Rabi' ? 0.55 : 0.75;
+      if ((t % interval) < dt){
+        const r = mwRings.find(r => r.age > 1);
+        if (r) r.age = 0;
+      }
+    }
+  }
+  mwRings.forEach(r => {
+    r.age += dt * 1.4;
+    if (r.age <= 1){
+      const s = 0.25 + r.age * 2.3;
+      r.m.scale.setScalar(s);
+      r.m.material.opacity = (1 - r.age) * 0.5;
+    } else r.m.material.opacity = 0;
+  });
+
+  /* --- L'antenne pulse avec la séquence --- */
+  mwMat.emissive.setHex(0xff7a33);
+  mwMat.emissiveIntensity = (curSeq !== 'ODMR')
+    ? 0.35 + 0.65 * Math.abs(Math.sin(t * 5)) : 0;
+
+  /* --- Le centre NV fluorescent suit le signal --- */
+  const fluo = 0.35 + 0.65 * sig;
+  nvHalo.material.opacity = 0.10 + fluo * 0.24;
   nvHalo.scale.setScalar(0.85 + fluo * 0.35);
-  nvLight.intensity = 1.0 + fluo * 1.1;
+  nvLight.intensity = 0.6 + fluo * 1.5;
 
   /* --- Diamant : rotation très lente (effet de réfraction) --- */
   diamond.rotation.y += dt * 0.35;
   diamond.rotation.x = Math.sin(t * 0.4) * 0.15;
 
-  /* --- APD : LED qui clignote au rythme des photons --- */
-  apdCount += dt * (12 + fluo * 45);
+  /* --- APD : LED qui clignote au rythme réel des photons --- */
+  apdCount += dt * (6 + sig * 80);
   if (apdCount > 1){ apdCount = 0; apdLed.material.color.setHex(0xffffff); }
   else apdLed.material.color.lerp(new THREE.Color(0xa855f7), 0.12);
   apdLight.intensity = 0.4 + fluo * 0.9;
 
-  /* --- HUD : comptage APD --- */
-  const target = 40 + fluo * 120 + Math.random() * 8;
+  /* --- HUD : comptage APD couplé au signal + paramètre live --- */
+  const target = 14 + sig * 138 + Math.random() * 7;
   apdSmooth += (target - apdSmooth) * 0.08;
   el('hApd').textContent = apdSmooth.toFixed(0) + ' kcps';
+  el('hMw').textContent = paramLabel(curSeq, k);
 
-  /* --- Transition vue éclatée --- */
+  /* --- Écran 3D + traceur du panneau (30 fps suffisent) --- */
+  if (frame % 2 === 0){
+    drawScreen(t);
+    drawPlot(t);
+  }
+
+  /* --- Vue éclatée : interpolation choreographiée --- */
   LAYERS.forEach(l => {
     const g = groups[l.id];
-    const tgt = g.userData.targetY ?? 0;
-    g.position.y += (tgt - g.position.y) * Math.min(dt * 5, 1);
+    const a = g.userData.anim;
+    if (a){
+      const q = (t - a.start) / a.dur;
+      if (q > 0){
+        const e = easeIO(Math.min(1, q));
+        g.position.lerpVectors(a.from, a.to, e);
+        if (q >= 1) g.userData.anim = null;
+      }
+    }
   });
 
   controls.update();
   renderer.render(scene, camera);
+
+  if (!booted){
+    booted = true;
+    setTimeout(() => el('loader').classList.add('done'), 250);
+  }
 }
 
 addEventListener('resize', () => {
@@ -1132,8 +1623,6 @@ addEventListener('resize', () => {
 });
 
 animate();
-setTimeout(() => el('loader').classList.add('done'), 450);
-setTimeout(() => el('tEncl').classList.add('on'), 60);
 </script>
 </body>
 </html>
