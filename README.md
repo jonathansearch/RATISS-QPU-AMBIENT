@@ -14,7 +14,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Citation](https://img.shields.io/badge/citation-CITATION.cff-blueviolet)](CITATION.cff)
 [![Tests](https://img.shields.io/badge/tests-43%2F43-success)](tests/)
-[![IBM](https://img.shields.io/badge/valid%C3%A9%20IBM-98.4%25-blueviolet)](results/bell_cross_validation.json)
+[![IBM](https://img.shields.io/badge/IBM%20validated-98.4%25-blueviolet)](results/bell_cross_validation.json)
 [![ORCID](https://img.shields.io/badge/ORCID-0009--0000--4092--5313-a6ce39)](https://orcid.org/0009-0000-4092-5313)
 
 > Intellectual property: **JOHNKING0 & Jonathan Evina** · RATIS Labs (Cameroon)
